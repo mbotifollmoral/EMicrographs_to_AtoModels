@@ -1,0 +1,590 @@
+ $MobilityModel       = masetti # mobility model, e.g. Minimos, constant, ... (ListOfValues:constant,minimos) (HighLightInUserInterface)
+
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ $COARSESPACING_Y     = 5               # grid spacing along y direction (DisplayUnit:nm)
+ $FINESPACING_Y       = 1            # grid spacing along y direction (DisplayUnit:nm)
+ $HYPERFINESPACING_Y   = 0.1             # grid spacing along y direction (DisplayUnit:nm) (for testing)
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ $COARSESPACING_X     = 5               # grid spacing along x direction (DisplayUnit:nm)
+ $FINESPACING_X       = 1               # grid spacing along x direction (DisplayUnit:nm)
+ $BIAS                = 2.0                    # Bias sweep: sweeping the gates (DisplayUnit:V)
+
+ $BIASSTART           = 0               # Voltage sweep: starting voltage for sweeping the gates (DisplayUnit:V)
+ $BIASEND             = 3               # Voltage sweep: ending voltage for sweeping the gates (DisplayUnit:V) (HighLightInUserInterface)
+ $BIASSWEEPSTEPS      = 30              # Voltage sweep: number of voltage steps                               (HighLightInUserInterface)
+ 
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+# User Input Dimensions:
+
+ $L_CH_Gate            =  100            # Length of the Channel / Top-gate Contact                                          (DisplayUnit:nm)
+ $L_P_Region           =  90             # Length of the P+ doped Region                                                     (DisplayUnit:nm) 
+ $L_OC_Offset          =  5              # Length of the Oxide Contacts Offset Region                                        (DisplayUnit:nm) 
+ $L_Side_Oxide         =  40             # Length of the Side-Oxide Regions                                                  (DisplayUnit:nm) 
+ $d_Rest_Cont          =  3              # The Thickness of all the contact plates other than the Gate                       (DisplayUnit:nm) 
+ $d_Gate_Cont          =  5              # The Thickness of the Gate contact                                                 (DisplayUnit:nm) 
+ $H_N_Sub              =  60             # The Height of the N doped bulk substrate up to the P+ doped source/drain regions  (DisplayUnit:nm) 
+ $H_P_Region           =  40             # The Height of the P+ doped source/drain regions                                   (DisplayUnit:nm)    
+ $d_Oxide              =  5              # The Thickness of the Oxide layers overall                                         (DisplayUnit:nm) 
+ $R_Curvature          =  10              # The Radius of the curvature at the bottom of the doping regions                   (DisplayUnit:nm) 
+
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 
+# Derived scales based on input dimensions
+ 
+ $L_Bulk_BG = $L_CH_Gate + 2*($L_P_Region + $L_Side_Oxide - $L_OC_Offset)            # Length of the MOSFET bulk/back gate, and the simulations box  (DisplayUnit:nm)
+ $H_Bulk = $d_Rest_Cont + $d_Gate_Cont + $H_N_Sub + $H_P_Region + $d_Oxide           # Height of the MOSFET bulk and the simulations box          (DisplayUnit:nm)
+ $L_Gate_Oxide = $L_CH_Gate + 2*$L_OC_Offset                                         # Length of the MOSFET top gate oxide   (DisplayUnit:nm)
+ $L_SD_Cont = $L_P_Region - 2*$L_OC_Offset                                           # Length of the Source/Drain contacts    (DisplayUnit:nm)
+ $H_Tot_Sub = $H_N_Sub  + $H_P_Region               
+
+ $SourceDrainVoltage  = 0.2               # source-drain voltage V_SD (DisplayUnit:V) (HighLightInUserInterface)
+ $BackGateVoltage  = -0.1                 # Backgate-Source voltage V_BS (DisplayUnit:V) (HighLightInUserInterface)
+
+ $n_DopingConcentration = 1e20            # n+ doping concentration (DisplayUnit:cm^-3) (HighLightInUserInterface)
+ $p_DopingConcentration = 1e16            # p doping concentration (DisplayUnit:cm^-3) (HighLightInUserInterface)
+
+
+ $Temperature         = 300               # temperature (DisplayUnit:K)
+
+ $EnergyLevel         = 0.045             # energy level of dopants relative to 'nearest' conduction and valence band-edge, p-B-in-Si, n-P-in-Si (DisplayUnit:eV)
+#$EnergyLevel         = -1000             # all dopants are ionized (DisplayUnit:eV)
+
+global{ 
+   simulate2D{}
+
+   crystal_zb{
+      x_hkl = [1, 0, 0]
+      y_hkl = [0, 1, 0]
+   }
+
+   substrate{
+      name = "Si"
+   }
+
+   temperature = $Temperature
+
+}
+
+grid{
+
+   xgrid{
+      line{ pos = -$L_Bulk_BG/2  spacing = $FINESPACING_X }
+      line{ pos = $L_Bulk_BG/2  spacing = $FINESPACING_X }
+   }
+   ygrid{
+      line{ pos = -$H_Tot_Sub - $d_Rest_Cont     spacing = $FINESPACING_Y }
+      line{ pos = -$H_Tot_Sub + $d_Rest_Cont     spacing = $FINESPACING_Y }
+      line{ pos = -$H_Tot_Sub + 2*$d_Rest_Cont   spacing = $COARSESPACING_Y}
+      line{ pos = -$H_P_Region - 5*$d_Rest_Cont  spacing = $COARSESPACING_Y}
+      line{ pos = -$H_P_Region - 1*$d_Rest_Cont  spacing = $FINESPACING_Y}
+      line{ pos = -$H_P_Region    spacing = $FINESPACING_Y }
+      line{ pos = -$d_Oxide       spacing = $FINESPACING_Y }
+      line{ pos = -$d_Oxide/2     spacing = $HYPERFINESPACING_Y }
+      line{ pos = $d_Oxide/2     spacing = $HYPERFINESPACING_Y }
+      line{ pos = $d_Oxide + $d_Gate_Cont  spacing = $FINESPACING_Y }
+
+   }
+}
+
+structure{
+   output_region_index{ boxes = no } 
+   output_material_index{ boxes = no }
+   output_alloy_composition{ boxes = no }
+   output_impurities{ boxes = no }
+
+   output_user_index{ boxes = no }
+   
+   $USER_INDEX = 1
+
+   region{
+      user_index=$USER_INDEX
+      rectangle{ # Simulation Box: Air
+         x = [(-$L_Bulk_BG/2) , ($L_Bulk_BG/2)]
+         y = [-($H_Tot_Sub + $d_Rest_Cont) , $d_Oxide + $d_Gate_Cont]
+
+      }
+      binary{
+         name = "Air"
+      }
+   }
+      
+   region{
+      $USER_INDEX = $USER_INDEX + 1
+      user_index=$USER_INDEX
+      rectangle{ # Si bulk p doped Substrate 
+         x = [(-$L_Bulk_BG/2) , ($L_Bulk_BG/2)]
+         y = [-$H_Tot_Sub, 0]
+      }
+      binary{
+         name = "Si"
+      }
+   }
+   region{
+      $USER_INDEX = $USER_INDEX + 1
+      user_index=$USER_INDEX
+      rectangle{ # SiO2 Oxide Region - Left
+         x = [(-$L_Bulk_BG/2), (-$L_Bulk_BG/2 + $L_Side_Oxide)]
+         y = [0, $d_Oxide]
+      }
+       binary{
+         name = "SiO2"
+      }
+   }
+   region{
+      $USER_INDEX = $USER_INDEX
+      user_index=$USER_INDEX
+      rectangle{# SiO2 Oxide Region - Gate
+         x = [-$L_Gate_Oxide/2, $L_Gate_Oxide/2]
+         y = [0, $d_Oxide]
+      }
+      binary{
+         name = "SiO2"
+      }
+    }   
+   region{
+      $USER_INDEX = $USER_INDEX
+      user_index=$USER_INDEX
+      rectangle{ # SiO2 Oxide Region - Right
+         x = [($L_Bulk_BG/2 - $L_Side_Oxide), $L_Bulk_BG/2 ]
+         y = [0, $d_Oxide]
+      }
+      binary{
+         name = "SiO2"
+      }
+   }
+   region{
+      $USER_INDEX = $USER_INDEX + 1
+      user_index=$USER_INDEX
+      rectangle{ # Back Contact
+         x = [-($L_Bulk_BG/2) , ($L_Bulk_BG/2)]
+         y = [-($H_Tot_Sub) , -($H_Tot_Sub + $d_Rest_Cont)]
+
+      }
+      contact { name = Back_Contact }
+      binary{
+         name = "Si"
+      }
+   }
+   region{
+      $USER_INDEX = $USER_INDEX
+      user_index=$USER_INDEX
+      rectangle{ # Source Contact
+         x = [-$L_Gate_Oxide/2, -($L_Gate_Oxide/2 + $L_SD_Cont)]
+         y = [0, $d_Rest_Cont]
+      }
+      contact { name = Source_Contact }   
+      binary{
+         name = "Si"
+      }
+   }
+   region{
+      $USER_INDEX = $USER_INDEX
+      user_index=$USER_INDEX
+      rectangle{ # Gate Contact
+         x = [-$L_CH_Gate/2, $L_CH_Gate/2]
+         y = [$d_Oxide, $d_Oxide + $d_Gate_Cont]
+      }
+      contact { name = Gate_Contact }
+      binary{
+         name = "SiO2"
+      }
+   }
+   region{
+      $USER_INDEX = $USER_INDEX
+      user_index=$USER_INDEX
+      rectangle{ # Drain Contact
+         x = [$L_Gate_Oxide/2, ($L_Gate_Oxide/2 + $L_SD_Cont)]
+         y = [0, $d_Rest_Cont]
+      }
+      contact { name = Drain_Contact }
+      binary{
+         name = "Si"
+      }
+   }
+   region{ # Substrate p-Doping
+      $USER_INDEX = $USER_INDEX + 1
+      user_index=$USER_INDEX
+      rectangle{
+         x = [-$L_Bulk_BG/2, $L_Bulk_BG/2]
+         y = [-$H_Tot_Sub, 0]
+      }
+      doping{
+         constant{
+            name = p_Dopant
+            conc = $p_DopingConcentration
+         }
+      }
+   }
+     
+   
+#---------------------- Source Region Doping which gemetrically consists of two renctangles and two circles for rounded edge doping region----------------
+
+# First is the removal of the substrate doping:
+#----------------------------- The substrate doping removal (geometrically equal to the above actual profile defintion) ---------------------
+
+      $USER_INDEX = $USER_INDEX + 1
+    
+   region{ # removal 1st part Rectangle
+      user_index=$USER_INDEX
+      rectangle{
+        x = [-$L_CH_Gate/2, -($L_CH_Gate/2 + $L_P_Region)]
+        y = [-($H_P_Region - $R_Curvature), 0]
+
+      }
+      doping{
+         remove{}
+      }
+   }
+   region{ # removal 2nd part Rectangle
+      user_index=$USER_INDEX
+      rectangle{
+        x = [-($L_CH_Gate/2 + $R_Curvature), -($L_CH_Gate/2 + $L_P_Region - $R_Curvature)]
+        y = [-$H_P_Region, -($H_P_Region - $R_Curvature)]
+
+      }
+      doping{
+         remove{}
+      }
+   }
+   region{ # removal right circle
+      user_index=$USER_INDEX
+      circle{                          
+         center{ x = -($L_CH_Gate/2 + $R_Curvature)    y = -($H_P_Region - $R_Curvature)} 
+         radius = $R_Curvature
+      }   
+      doping{
+        remove{}
+      }
+   }
+   region{ # removal left circle
+      user_index=$USER_INDEX
+      circle{                          
+         center{ x = -($L_CH_Gate/2 + $L_P_Region - $R_Curvature)    y = -($H_P_Region - $R_Curvature)} 
+         radius = $R_Curvature
+      }   
+      doping{
+         remove{}
+      }
+   }
+
+# Secondly comes the actual doping of the region:
+#---------------------- The actual doping profile defionion ---------------------------------------
+   region{ # n+_Doping 1st part Rectangle
+      user_index=$USER_INDEX
+      rectangle{
+        x = [-$L_CH_Gate/2, -($L_CH_Gate/2 + $L_P_Region)]
+        y = [-($H_P_Region - $R_Curvature), 0]
+
+      }
+      doping{
+         constant{
+            name = n_Dopant
+            conc = $n_DopingConcentration
+         }
+      }
+   }
+   region{ # n+_Doping 2nd part Rectangle
+      user_index=$USER_INDEX
+      rectangle{
+        x = [-($L_CH_Gate/2 + $R_Curvature), -($L_CH_Gate/2 + $L_P_Region - $R_Curvature)]
+        y = [-$H_P_Region, -($H_P_Region - $R_Curvature)]
+
+      }
+      doping{
+         constant{
+            name = n_Dopant
+            conc = $n_DopingConcentration
+         }
+      }
+   }
+   region{ # n+_Doping right circle
+      user_index=$USER_INDEX
+      circle{                          
+         center{ x = -($L_CH_Gate/2 + $R_Curvature)    y = -($H_P_Region - $R_Curvature)} 
+         radius = $R_Curvature
+      }   
+      doping{
+         constant{
+            name = n_Dopant
+            conc = $n_DopingConcentration
+            add = no
+         }
+      }
+   }
+   region{ # n+_Doping left circle
+      user_index=$USER_INDEX
+      circle{                          
+         center{ x = -($L_CH_Gate/2 + $L_P_Region - $R_Curvature)    y = -($H_P_Region - $R_Curvature)} 
+         radius = $R_Curvature
+      }   
+      doping{
+         constant{
+            name = n_Dopant
+            conc = $n_DopingConcentration 
+            add = no  
+         }
+      }
+   }
+
+
+#---------------------- Drain Region Doping which gemetrically consists of two renctangles and two circles for rounded edge doping region----------------
+
+# First is the removal of the substrate doping:
+#----------------------------- The substrate doping removal (geometrically equal to the above actual profile defintion) ---------------------
+    
+   region{ # removal 1st part Rectangle
+      user_index=$USER_INDEX
+      rectangle{
+        x = [$L_CH_Gate/2, ($L_CH_Gate/2 + $L_P_Region)]
+        y = [-($H_P_Region - $R_Curvature), 0]
+
+      }
+      doping{
+         remove{}
+      }
+   }
+   region{ # removal 2nd part Rectangle
+      user_index=$USER_INDEX
+      rectangle{
+        x = [($L_CH_Gate/2 + $R_Curvature), ($L_CH_Gate/2 + $L_P_Region - $R_Curvature)]
+        y = [-$H_P_Region, -($H_P_Region - $R_Curvature)]
+
+      }
+      doping{
+         remove{}
+      }
+   }
+   region{ # removal right circle
+      user_index=$USER_INDEX
+      circle{                          
+         center{ x = ($L_CH_Gate/2 + $R_Curvature)    y = -($H_P_Region - $R_Curvature)} 
+         radius = $R_Curvature
+      }   
+      doping{
+        remove{}
+      }
+   }
+   region{ # removal left circle
+      user_index=$USER_INDEX
+      circle{                          
+         center{ x = ($L_CH_Gate/2 + $L_P_Region - $R_Curvature)    y = -($H_P_Region - $R_Curvature)} 
+         radius = $R_Curvature
+      }   
+      doping{
+         remove{}
+      }
+   }
+
+# Secondly comes the actual doping of the region:
+#---------------------- The actual doping profile defionion ---------------------------------------
+   region{ # n+_Doping 1st part Rectangle
+      user_index=$USER_INDEX
+      rectangle{
+        x = [$L_CH_Gate/2, ($L_CH_Gate/2 + $L_P_Region)]
+        y = [-($H_P_Region - $R_Curvature), 0]
+
+      }
+      doping{
+         constant{
+            name = n_Dopant
+            conc = $n_DopingConcentration
+         }
+      }
+   }
+   region{ # n+_Doping 2nd part Rectangle
+      user_index=$USER_INDEX
+      rectangle{
+        x = [($L_CH_Gate/2 + $R_Curvature), ($L_CH_Gate/2 + $L_P_Region - $R_Curvature)]
+        y = [-$H_P_Region, -($H_P_Region - $R_Curvature)]
+
+      }
+      doping{
+         constant{
+            name = n_Dopant
+            conc = $n_DopingConcentration
+         }
+      }
+   }
+   region{ # n+_Doping right circle
+      user_index=$USER_INDEX
+      circle{                          
+         center{ x = ($L_CH_Gate/2 + $R_Curvature)    y = -($H_P_Region - $R_Curvature)} 
+         radius = $R_Curvature
+      }   
+      doping{
+         constant{
+            name = n_Dopant
+            conc = $n_DopingConcentration
+            add = no  
+         }
+      }
+   }
+   region{ # n+_Doping left circle
+      user_index=$USER_INDEX
+      circle{                          
+         center{ x = ($L_CH_Gate/2 + $L_P_Region - $R_Curvature)    y = -($H_P_Region - $R_Curvature)} 
+         radius = $R_Curvature
+      }   
+      doping{
+         constant{
+            name = n_Dopant
+            conc = $n_DopingConcentration
+            add = no   
+         }
+      }
+   }
+   
+}
+
+impurities{
+   donor{ # n-type
+      name = n_Dopant
+      energy = 0.054
+      degeneracy = 2
+   }
+   acceptor{ # p-type
+      name = p_Dopant
+      energy = 0.045
+      degeneracy = 4
+   }
+}
+
+contacts{
+   ohmic{
+      name = Back_Contact
+      bias = -0.1
+    
+
+   }
+     ohmic{
+      name = Source_Contact               
+      bias = 0.0
+   
+
+   }
+    schottky{
+      name = Gate_Contact
+      bias = [$BIASSTART, $BIASEND] 
+    #  steps = 61 
+    #  bias=$BIAS # sweeping the gate voltage
+      steps=$BIASSWEEPSTEPS 
+      barrier = 3.95 
+   }
+   ohmic{
+      name = Drain_Contact
+    #  shift = 0.40
+      bias = $SourceDrainVoltage
+   }
+
+
+}
+
+classical{
+   Gamma{}
+   L{}
+   Delta{}
+   HH{}
+   LH{}
+   SO{}
+   output_bandedges{ averaged = yes }
+   output_carrier_densities{}
+   output_intrinsic_density{}
+}
+
+poisson{
+   output_potential{}
+   output_electric_field{}
+    newton_solver{ iterations   = 200
+          search_steps = 50 
+          residual     = 1e-5}
+  
+  linear_solver{                        
+      iterations   = 1000               
+      abs_accuracy = 1e-8               
+     }
+
+   bisection{ 
+      delta      = 10.0
+      iterations = 40
+      residual   = 1e-3
+     }
+}
+
+currents{
+   recombination_model{
+      SRH = no
+      Auger = no
+      radiative = no
+   }
+  
+
+   mobility_model = $MobilityModel
+   output_fermi_levels{}
+   output_mobilities{}
+   output_currents{}
+
+   minimum_density = 1e12
+
+}
+
+quantum {
+   region{
+      name = "quantum_region"
+      x = [-$L_CH_Gate/2, $L_CH_Gate/2]
+      y = [-2*$d_Oxide , 0]
+
+      boundary{
+         
+         y = dirichlet
+      }
+      Gamma{
+         num_ev = 300
+      }
+      L{
+         num_ev = 300
+      }
+      Delta{
+         num_ev = 300
+      }     
+      HH{
+         num_ev = 300
+      }
+      LH{
+         num_ev = 300
+      }
+      SO{
+         num_ev = 300
+      }
+      
+      output_wavefunctions{
+         max_num = 9999
+         all_k_points = yes
+         amplitudes = no
+         probabilities = yes
+      }
+   }
+}
+
+
+output{
+
+   format2D = VTKAscii
+
+   section1D{                 # ouput a 1D section of the simulation area (1D slice)
+      name = "middle_line_x_direction"              # name of section enters file name
+
+      y = 0                              # 1D slice at y over the inversion layer
+   }
+
+   section1D{                 # ouput a 1D section of the simulation area (1D slice)
+      name = "middle_line_y_direction"              # name of section enters file name
+
+      x = 0                # 1D slice at x through the middle of the channel
+   }
+
+}
+
+run{
+structure_only{}
+}

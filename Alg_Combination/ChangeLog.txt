@@ -1,0 +1,26 @@
+Major changes of the file
+
+
+Alg_Combination_1stAprox_2.5
+
+-Analysed_Image() class moved to PhaseIdentification module for consistency between Alg_Comb scripts
+-The crop_index variable inside the Analysed_Image class has been set by default to 1 as the staring value, as the labels are identified with the labels from 1 to n labels, then the crop index and its entries in the dictionary correspond 1 to 1 with the labels.
+-Added the final peak finding algorithm and its required functions as independent .py packages
+based on the standarisation of the FFT for leveraging the obtention of the peaks of the FFT
+at different magnifications and calibrations
+-Added the final segmentation of the images mainly based on contour finding algorithm (Canny edge)
+-Added in the unit_cell function loader, the capability to load also uce files by
+doing the on-the-go conversion of the format
+
+
+Alg_Combination_1stAprox_2.0
+
+-Added the final peak finding algorithm and its required functions as independent .py packages
+
+
+
+Alg_Combination_1stAprox
+
+-Still uncomplete total workflow
+-Missing the definition of phase per segmented region after all the possibilites are considered. Thus, obtaining the most likely phase per segmented region from all the extracted FFTs from all the regions from all the images in the dataset
+-1stAprox stands for the model not being able, in principle, to distinguish the regions with twins or stacking faults. Thus, the FFT should detect them, but the segmentation and the phases wrap up does not, for the first approximation at least.

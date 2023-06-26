@@ -1,0 +1,66 @@
+global{ 
+   simulate3D{}
+   crystal_wz{
+      x_hkl = [ 2,-1, 0 ] # Miller-Bravais indices of z coordinate axis
+      y_hkl = [ 0, 1, 0 ] # Miller-Bravais indices of x coordinate axis
+   }
+
+   substrate{
+      name = "AlN"
+   }
+
+   temperature = 300.0 # Kelvin
+}
+
+$SPACING = 1.0
+$SHIFT = 0.0
+grid{
+   xgrid{
+      line{ pos =  0.5 + $SHIFT spacing = $SPACING }
+      line{ pos = 99.5 + $SHIFT spacing = $SPACING }
+   }
+
+   ygrid{
+      line{ pos =  0.5 + $SHIFT spacing = $SPACING }
+      line{ pos = 99.5 + $SHIFT spacing = $SPACING }
+  }
+   zgrid{
+      line{ pos =  0.5 + $SHIFT spacing = $SPACING }
+      line{ pos = 99.5 + $SHIFT spacing = $SPACING }
+  }
+}
+
+structure{
+   output_region_index{ boxes = no }
+
+   region{
+      everywhere{
+      }
+      contact { name = dummy }
+      binary{
+         name = "GaN"
+      }
+   }
+
+   region{
+      cylinder{                     # 3-dimensional cylinder object
+         axis_start = [50, 50, 30]  # begin of cylinder axis
+         axis_end   = [50, 50, 60]  # end of cylinder axis
+         radius     = 20            # radius of cylinder
+      }
+      binary{
+         name = "InN"
+      }
+   }
+}
+
+contacts{
+   fermi{ name = "dummy" bias = 0} # define reference energy
+}
+
+classical{
+   Gamma{}
+   HH{}
+   LH{}
+   SO{}
+}
