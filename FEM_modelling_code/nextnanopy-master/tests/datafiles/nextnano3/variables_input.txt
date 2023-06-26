@@ -1,4 +1,0 @@
-! Header for empty file --> Note: no variables defined in input file.
-%var_1 = -47.5
-%var_2 = 75
-%string = "hello"
