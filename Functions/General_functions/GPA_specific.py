@@ -13,13 +13,24 @@ import skimage.measure
 from numpy import fft
 import ctypes
 from matplotlib.patches import Circle, Rectangle
-
 import sys
+import os
+from pathlib import Path
 
-sys.path.append(r'E:\Arxius varis\PhD\3rd_year\Code\Functions')
+# !!! NEED to set the path to 
+# Alg_Comb_Single_Image_Strain.py
+# as the console working directory
+Project_main_path = os.getcwd()
+if 'EMicrographs_to_AtoModels' in Project_main_path:
+    Project_main_path = Project_main_path[:Project_main_path.find('EMicrographs_to_AtoModels')-1]
+# Project_main_path has the EMicrographs_to_AtoModels folder
+sys.path.append(Project_main_path)
 
-import Segmentation_1stAprox as Segment
-import ImageCalibTransf as ImCalTrans
+from EMicrographs_to_AtoModels.Functions.General_functions import Segmentation_1stAprox as Segment
+from EMicrographs_to_AtoModels.Functions.General_functions import ImageCalibTransf as ImCalTrans
+
+
+
 
 # GPA_wrapper
 
@@ -31,7 +42,11 @@ def FT(img):
 def IFT(img):
     return fft.fftshift(fft.ifft2(fft.ifftshift(img)))
 
-lib = ctypes.CDLL(r"E:\Arxius varis\PhD\3rd_year\Code\Functions\GPA_dll\GPA.dll")
+
+GPA_base_dll_path = Project_main_path + '\\EMicrographs_to_AtoModels\Functions\General_functions\GPA_dll'
+# os.chdir(GPA_base_dll_path)
+
+lib = ctypes.CDLL(GPA_base_dll_path + '\\' + 'GPA.dll')
 
 Handle = ctypes.POINTER(ctypes.c_char)
 c_float_array = np.ctypeslib.ndpointer(dtype=np.float32, ndim=1, flags='C_CONTIGUOUS')

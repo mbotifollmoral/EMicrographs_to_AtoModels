@@ -13,10 +13,22 @@ import hyperspy.api as hs
 import matplotlib.pyplot as plt
 import sys
 
-sys.path.append(r'E:\Arxius varis\PhD\3rd_year\Code\Functions')
+# !!! NEED to set the path to 
+# Alg_Comb_Single_Image_Strain.py
+# as the console working directory
+Alg_Comb_folderpath = os.getcwd()
+Project_main_path = Alg_Comb_folderpath[:Alg_Comb_folderpath.find('Alg_Combination')-1]
+Project_main_path = Project_main_path[:Project_main_path.find('EMicrographs_to_AtoModels')-1]
+# Project_main_path has the EMicrographs_to_AtoModels folder
+sys.path.append(Project_main_path)
 
-import ImageCalibTransf as ImCalTrans
-import GPA_specific as GPA_sp
+from EMicrographs_to_AtoModels.Functions.General_functions import ImageCalibTransf as ImCalTrans
+from EMicrographs_to_AtoModels.Functions.General_functions import GPA_specific as GPA_sp
+
+# sys.path.append(r'E:\Arxius varis\PhD\3rd_year\Code\Functions')
+
+# import ImageCalibTransf as ImCalTrans
+# import GPA_specific as GPA_sp
 
 
 

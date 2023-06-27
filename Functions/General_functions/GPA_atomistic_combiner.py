@@ -20,19 +20,20 @@ from pathlib import Path
 import ase
 import random
 
+# !!! NEED to set the path to 
+# Alg_Comb_Single_Image_Strain.py
+# as the console working directory
+Project_main_path = os.getcwd()
+if 'EMicrographs_to_AtoModels' in Project_main_path:
+    Project_main_path = Project_main_path[:Project_main_path.find('EMicrographs_to_AtoModels')-1]
+# Project_main_path has the EMicrographs_to_AtoModels folder
+sys.path.append(Project_main_path)
 
-sys.path.append(r'E:\Arxius varis\PhD\3rd_year\Code\Functions')
 
-import Segmentation_1stAprox as Segment
-import PeakFinding_1stAprox as PeakFind
-import GPA_specific as GPA_sp
-import Filters_Noise as FiltersNoise
-import Phase_Identificator as PhaseIdent
-import ImageCalibTransf as ImCalTrans
+from EMicrographs_to_AtoModels.Functions.General_functions import ImageCalibTransf as ImCalTrans
+from EMicrographs_to_AtoModels.Atomistic_model_builder import Atomistic_Model_Builder as AtomBuild
+from EMicrographs_to_AtoModels.Functions.General_functions import GPA_specific as GPA_sp
 
-sys.path.append(r'E:\Arxius varis\PhD\4rth_year\Code\Atomistic_model_builder')
-
-import Atomistic_Model_Builder as AtomBuild
 
 '''
 Script to hold the functions used for the GPA computation and to get all the
@@ -46,9 +47,9 @@ def FT(img):
 def IFT(img):
     return np.fft.fftshift(np.fft.ifft2(np.fft.ifftshift(img)))
 
+GPA_atom_dll_path = Project_main_path + '\\EMicrographs_to_AtoModels\Strain_to_atomistic\GPA_to_atom_dll'
 
-
-lib = ctypes.CDLL(r"E:\Arxius varis\PhD\4rth_year\Code\Strain_to_atomistic\GPA_to_atom_dll\GPA_to_atom.dll")
+lib = ctypes.CDLL(GPA_atom_dll_path + '\\' + 'GPA_to_atom.dll')
 Handle = ctypes.POINTER(ctypes.c_char)
 c_float_array = np.ctypeslib.ndpointer(dtype=np.float32, ndim=1, flags='C_CONTIGUOUS')
 c_int_array = np.ctypeslib.ndpointer(dtype=int, ndim=1, flags='C_CONTIGUOUS')

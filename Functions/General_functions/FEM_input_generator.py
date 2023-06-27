@@ -18,11 +18,18 @@ from pathlib import Path
 import os
 import sys
 
-sys.path.append(r'E:\Arxius varis\PhD\4rth_year\Code\Functions\General_functions')
-sys.path.append(r'E:\Arxius varis\PhD\4rth_year\Code\Atomistic_model_builder')
 
-import Atomistic_Model_Builder as AtomBuild
-import GPA_atomistic_combiner as GPA_AtoMod
+# !!! NEED to set the path to 
+# Alg_Comb_Single_Image_Strain.py
+# as the console working directory
+Project_main_path = os.getcwd()
+if 'EMicrographs_to_AtoModels' in Project_main_path:
+    Project_main_path = Project_main_path[:Project_main_path.find('EMicrographs_to_AtoModels')-1]
+# Project_main_path has the EMicrographs_to_AtoModels folder
+sys.path.append(Project_main_path)
+
+from EMicrographs_to_AtoModels.Atomistic_model_builder import Atomistic_Model_Builder as AtomBuild
+from EMicrographs_to_AtoModels.Functions.General_functions import GPA_atomistic_combiner as GPA_AtoMod
 
 
 

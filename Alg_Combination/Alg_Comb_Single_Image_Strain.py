@@ -29,34 +29,27 @@ import ase
 import ase.io
 import ase.visualize
 
+# !!! NEED to set the path to 
+# Alg_Comb_Single_Image_Strain.py
+# as the console working directory
+Project_main_path = os.getcwd()
+if 'EMicrographs_to_AtoModels' in Project_main_path:
+    Project_main_path = Project_main_path[:Project_main_path.find('EMicrographs_to_AtoModels')-1]
+# Project_main_path has the EMicrographs_to_AtoModels folder
+sys.path.append(Project_main_path)
 
-sys.path.append(r'E:\Arxius varis\PhD\3rd_year\Code\Functions')
+import EMicrographs_to_AtoModels
 
-# General functions
-import HighToLowTM 
-import Segmentation_1stAprox as Segment
-import Filters_Noise as FiltersNoise
-import Phase_Identificator as PhaseIdent
-import ImageCalibTransf as ImCalTrans
-import PeakFinding_1stAprox as PeakFind
-import GPA_specific as GPA_sp
-
-# Peak finding functions
-sys.path.append(r'E:\Arxius varis\PhD\4rth_year\Code\Functions\Peak_detector_Final')
-sys.path.append(r'E:\Arxius varis\PhD\4rth_year\Code\Functions\Ivans_Files_2\IVAN\Segmentation_model')
-sys.path.append(r'E:\Arxius varis\PhD\4rth_year\Code\Functions\General_functions')
-sys.path.append(r'E:\Arxius varis\PhD\4rth_year\Code\Atomistic_model_builder')
-
-import Atomistic_Model_Builder as AtomBuild
-import PF_FFT_processing as FFT_Procs
-import PF_Peaks_detector as Peaks_detector
-import PF_ImageTreatment_and_interfaces as PF_II
-import SG_Segmentation_algorithms as SegmAlgs
-import Segmentation_Wrapped as SegmWrap
-import FFT_indexer
-import GPA_atomistic_combiner as GPA_AtoMod
-import FEM_input_generator as FEMBuild
-
+from EMicrographs_to_AtoModels.Functions.General_functions import HighToLowTM
+from EMicrographs_to_AtoModels.Functions.General_functions import Segmentation_1stAprox as Segment
+from EMicrographs_to_AtoModels.Functions.General_functions import Phase_Identificator as PhaseIdent
+from EMicrographs_to_AtoModels.Functions.General_functions import ImageCalibTransf as ImCalTrans
+from EMicrographs_to_AtoModels.Functions.General_functions import Segmentation_Wrapped as SegmWrap
+from EMicrographs_to_AtoModels.Functions.General_functions import FFT_indexer
+from EMicrographs_to_AtoModels.Functions.General_functions import FEM_input_generator as FEMBuild
+from EMicrographs_to_AtoModels.Atomistic_model_builder import Atomistic_Model_Builder as AtomBuild
+from EMicrographs_to_AtoModels.Functions.General_functions import GPA_atomistic_combiner as GPA_AtoMod
+from EMicrographs_to_AtoModels.Functions.General_functions import GPA_specific as GPA_sp
 
 
 #%%
@@ -93,11 +86,8 @@ Template matching and generation of the relative coordinates per image over the 
 # root.withdraw()
 # dataset_system_path_name = filedialog.askdirectory(parent=root,initialdir="/",title='Folder with the images dataset')
 
-dataset_system_path_name=r'E:\Arxius varis\PhD\2nd_year\Code\trial_images\full_device_STEM_datasets\QT543AlNb\\'
-dataset_system_path_name=r'E:\Arxius varis\PhD\2nd_year\Code\trial_images\full_device_STEM_datasets\Qdev439_InAs120nm_Al full 25nm\NW1\\'
-dataset_system_path_name=r'E:\Arxius varis\PhD\2nd_year\Code\trial_images\full_device_STEM_datasets\SQ20-250-2\\'
 
-dataset_system_path_name = r'E:\Arxius varis\PhD\2nd_year\Code\trial_images\single_image_analysis\\'
+dataset_system_path_name = r'D:\Marc_Botifoll\Global_Results_per_Device\InSb_InP_TransvNW_3\Micrographs\\'
 
 # Browse the images in the folder and also calibrate
 # !!! CALIBRATION CORRECTION DONE HERE --> NO NEED TO CHANGE THE CALIBRATION OF THE IMAGES AT ANY POINT
@@ -166,7 +156,7 @@ Functions for finding out the high mag image within the segmented map
 
 # Initialise the possible unit cells before going into the image per image analysis as the step is common
 # Get the possible unit cells into a Crystal object to hold a DP simulation
-unit_cells_path = r'E:\Arxius varis\PhD\3rd_year\Code\unit_cells'
+unit_cells_path = r'D:\Marc_Botifoll\unit_cells'
 
 
 # Initialise the crystal objects for every possible unit cell in the path of possible cells
@@ -496,12 +486,19 @@ exx, eyy, exy, eyx, rot, shear, Dispx, Dispy, ref_spot1, ref_spot2 = GPA_AtoMod.
 
 
 
-# Build a directory to save the GPA outputs and store all the images genrated 
+# Build a directory to save the all outputs and store all the images genrated 
 # with all the info from the computation 
-GPA_save_directory = unit_cells_path[:unit_cells_path.find('unit_cells')] + '\\' + 'GPA_output' + '\\'
+Results_dir = dataset_system_path_name[:-3][:dataset_system_path_name[:-3].rfind('\\')] + '\\Results_' + image_in_dataset_whole.name + '\\'
+path_Results = os.path.isdir(Results_dir)
+if path_Results == False:
+    os.mkdir(Results_dir)
+
+# Path to save GPA stuff
+GPA_save_directory = Results_dir + 'GPA_output' + '\\'
 path_GPA = os.path.isdir(GPA_save_directory)
 if path_GPA == False:
     os.mkdir(GPA_save_directory)
+
 
 # Save all the outputs
 for result_image_name, result_image_array in zip(['exx','eyy','exy','eyx','rot','shear','Dispx','Dispy'],[exx,eyy,exy,eyx,rot,shear,Dispx,Dispy]):
@@ -521,7 +518,7 @@ Translation of GPA information, displacement fields, into the atomistic model
 
 # Convert all found phases into cif files
 model_cells_filepath = AtomBuild.cif_from_uce_All_found_phases(
-    analysed_image_only, unit_cells_path)
+    analysed_image_only, unit_cells_path, Results_dir)
 
 
 # first make the check on the reference lattice label_of_GPA_ref

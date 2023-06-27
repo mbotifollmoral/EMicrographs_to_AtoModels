@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+[project]
+name = "EMicrographs_to_AtoModels"
+version = "0.0.1"
+authors = [
+  { name="Marc Botifoll Moral", email="marc.botifoll@icn2.cat" },
+]
+description = "Automatically analyse electron micrographs, find the crystal phases in the device, 
+		get strain maps, and build realistic atomistic and FEM models out of it"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU GENERAL PUBLIC LICENSE",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/mbotifollmoral/EMicrographs_to_AtoModels"
+"Bug Tracker" = "https://github.com/mbotifollmoral/EMicrographs_to_AtoModels/issues"

@@ -11,22 +11,24 @@ import sys
 import stemtool
 import torch
 import torch.nn
+import os
 
-sys.path.append(r'E:\Arxius varis\PhD\3rd_year\Code\Functions')
-
-# General functions
-import Phase_Identificator as PhaseIdent
-import ImageCalibTransf as ImCalTrans
-import PeakFinding_1stAprox as PeakFind
-
-# Peak finding functions
-sys.path.append(r'E:\Arxius varis\PhD\4rth_year\Code\Functions\Peak_detector_Final')
-sys.path.append(r'E:\Arxius varis\PhD\4rth_year\Code\Functions\Ivans_Files_2\IVAN\Segmentation_model')
-
-import PF_FFT_processing as FFT_Procs
-import PF_Peaks_detector as Peaks_detector
+# !!! NEED to set the path to 
+# Alg_Comb_Single_Image_Strain.py
+# as the console working directory
+Project_main_path = os.getcwd()
+if 'EMicrographs_to_AtoModels' in Project_main_path:
+    Project_main_path = Project_main_path[:Project_main_path.find('EMicrographs_to_AtoModels')-1]
+# Project_main_path has the EMicrographs_to_AtoModels folder
+sys.path.append(Project_main_path)
 
 
+from EMicrographs_to_AtoModels.Functions.General_functions import Phase_Identificator as PhaseIdent
+from EMicrographs_to_AtoModels.Functions.General_functions import ImageCalibTransf as ImCalTrans
+from EMicrographs_to_AtoModels.Functions.General_functions import PeakFinding_1stAprox as PeakFind
+
+from EMicrographs_to_AtoModels.Functions.Peak_detector_Indep import PF_FFT_processing as FFT_Procs
+from EMicrographs_to_AtoModels.Functions.Peak_detector_Indep import PF_Peaks_detector as Peaks_detector
 
 
 '''
@@ -563,7 +565,7 @@ def Peak_Detection_Wrapped_CNN(
     # Load CNN model
     device = torch.device("cuda")
     
-    CNN_model = torch.load(r'E:\Arxius varis\PhD\4rth_year\Code\Functions\Ivans_Files\DL2.pt')
+    CNN_model = torch.load(r'D:\Marc_Botifoll\Data_ML\CNN_Model_PeakFinding\DL2.pt')
     
     #CNN prediction
     CNN_prediction, _ = CNN_model.predict(FFT_image_array)
@@ -623,7 +625,7 @@ def Peak_Detection_Wrapped_Standarised_CNN(
     device = torch.device("cuda")
     
     
-    CNN_model = torch.load(r'E:\Arxius varis\PhD\4rth_year\Code\Functions\Ivans_Files\DL2.pt')
+    CNN_model = torch.load(r'D:\Marc_Botifoll\Data_ML\CNN_Model_PeakFinding\DL2.pt')
     
     # obtain the standarised FFT from which to compute the peaks (no log),  
     # and where it is extracted from the whole FFT 
@@ -721,7 +723,7 @@ def Peak_Detection_Wrapped_Standarised_withFOV_CNN(
     device = torch.device("cuda")
     
     
-    CNN_model = torch.load(r'E:\Arxius varis\PhD\4rth_year\Code\Functions\Ivans_Files\DL2.pt')
+    CNN_model = torch.load(r'D:\Marc_Botifoll\Data_ML\CNN_Model_PeakFinding\DL2.pt')
     
     # obtain the standarised FFT from which to compute the peaks (no log),  
     # and where it is extracted from the whole FFT 
