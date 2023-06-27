@@ -6,7 +6,16 @@ import hyperspy.api as hs
 import os
 import time
 import cv2
-import PF_ImageTreatment_and_interfaces as ii
+import sys
+
+Project_main_path = os.getcwd()
+if 'EMicrographs_to_AtoModels' in Project_main_path:
+    Project_main_path = Project_main_path[:Project_main_path.find('EMicrographs_to_AtoModels')-1]
+# Project_main_path has the EMicrographs_to_AtoModels folder
+sys.path.append(Project_main_path)
+
+from EMicrographs_to_AtoModels.Functions.Peak_detector_Indep import PF_ImageTreatment_and_interfaces as ii
+
 
 ''' Experimental treatment '''
 

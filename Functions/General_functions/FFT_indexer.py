@@ -11,16 +11,18 @@ import pickle
 import sys
 import matplotlib.pyplot as plt
 
-sys.path.append(r'E:\Arxius varis\PhD\3rd_year\Code\Functions')
+# !!! NEED to set the path to 
+# Alg_Comb_Single_Image_Strain.py
+# as the console working directory
+Project_main_path = os.getcwd()
+if 'EMicrographs_to_AtoModels' in Project_main_path:
+    Project_main_path = Project_main_path[:Project_main_path.find('EMicrographs_to_AtoModels')-1]
+# Project_main_path has the EMicrographs_to_AtoModels folder
+sys.path.append(Project_main_path)
 
-# General functions
+from EMicrographs_to_AtoModels.Functions.General_functions import ImageCalibTransf as ImCalTrans
+from EMicrographs_to_AtoModels.Functions.Peak_detector_Indep import PF_Peaks_detector as Peaks_detector
 
-import ImageCalibTransf as ImCalTrans
-
-# Peak finding functions
-sys.path.append(r'E:\Arxius varis\PhD\4rth_year\Code\Functions\Peak_detector_Final')
-
-import PF_Peaks_detector as Peaks_detector
 
 
 fft_info_data = dict()

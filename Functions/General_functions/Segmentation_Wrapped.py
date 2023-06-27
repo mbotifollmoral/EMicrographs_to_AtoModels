@@ -11,19 +11,22 @@ import matplotlib.pyplot as plt
 import sys
 import skimage.measure
 from scipy.signal import argrelextrema
+import os
+import sys
 
-sys.path.append(r'E:\Arxius varis\PhD\3rd_year\Code\Functions')
+# !!! NEED to set the path to 
+# Alg_Comb_Single_Image_Strain.py
+# as the console working directory
+Project_main_path = os.getcwd()
+if 'EMicrographs_to_AtoModels' in Project_main_path:
+    Project_main_path = Project_main_path[:Project_main_path.find('EMicrographs_to_AtoModels')-1]
+# Project_main_path has the EMicrographs_to_AtoModels folder
+sys.path.append(Project_main_path)
 
-# General functions
-import Segmentation_1stAprox as Segment
-import Filters_Noise as FiltersNoise
+from EMicrographs_to_AtoModels.Functions.General_functions import Segmentation_1stAprox as Segment
+from EMicrographs_to_AtoModels.Functions.General_functions import Filters_Noise as FiltersNoise
 
-# Peak finding functions
-sys.path.append(r'E:\Arxius varis\PhD\4rth_year\Code\Functions\Ivans_Files_2\IVAN\Segmentation_model')
-
-import SG_Segmentation_algorithms as SegmAlgs
-
-
+from EMicrographs_to_AtoModels.Functions.PeakDet_Segment.Segmentation_model import SG_Segmentation_algorithms as SegmAlgs
 
 
 # Segmentation functions in the combined algorihtm 1st aprox

@@ -12,20 +12,26 @@ from sympy.utilities.iterables import multiset_permutations, permute_signs
 import os
 import sys
 
-sys.path.append(r'E:\Arxius varis\PhD\3rd_year\Code\Functions')
-sys.path.append(r'E:\Arxius varis\PhD\4rth_year\Code\Functions\General_functions')
 
-# General functions
-import ImageCalibTransf as ImCalTrans
-import Peak_Finding_Wrapped as PeakFindWrap
-import File_Compatibility as FileComp
+# !!! NEED to set the path to 
+# Alg_Comb_Single_Image_Strain.py
+# as the console working directory
+Alg_Comb_folderpath = os.getcwd()
+Project_main_path = Alg_Comb_folderpath[:Alg_Comb_folderpath.find('Alg_Combination')-1]
+Project_main_path = Project_main_path[:Project_main_path.find('EMicrographs_to_AtoModels')-1]
+# Project_main_path has the EMicrographs_to_AtoModels folder
+sys.path.append(Project_main_path)
 
+from EMicrographs_to_AtoModels.Functions.General_functions import ImageCalibTransf as ImCalTrans
+from EMicrographs_to_AtoModels.Functions.General_functions import Peak_Finding_Wrapped as PeakFindWrap
+from EMicrographs_to_AtoModels.Functions.General_functions import File_Compatibility as FileComp
 
 
 # ZA Finding Wrapper
 
 #path to the dll
-lib = ctypes.CDLL(r"E:\Arxius varis\PhD\3rd_year\Code\Functions\difftool_dll\diffTools.dll")
+difftools_dll_path = Project_main_path + '\\EMicrographs_to_AtoModels\Functions\General_functions\difftool_dll'
+lib = ctypes.CDLL(difftools_dll_path + '\\' + 'diffTools.dll')
 
 CrystalHandle = ctypes.POINTER(ctypes.c_char)
 c_int_array = np.ctypeslib.ndpointer(dtype=np.int32, ndim=1, flags='C_CONTIGUOUS')

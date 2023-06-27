@@ -17,11 +17,6 @@ import sys
 import os
 
 
-sys.path.append(r'E:\Arxius varis\PhD\3rd_year\Code\Functions')
-
-import ImageCalibTransf as ImCalTrans
-
-
 
 def FFT_calibration(hyperspy_2D_signal):
     fft_shifted = hyperspy_2D_signal.fft(shift=True)

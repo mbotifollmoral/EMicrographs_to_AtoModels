@@ -25,22 +25,33 @@ from ase.visualize import view
 from abtem.visualize import show_atoms
 from ase.build import surface, make_supercell, find_optimal_cell_shape, rotate
 import mendeleev as mdl
+import math
+from math import gcd
+from numpy.linalg import norm, solve
+from ase.build import bulk
 
 
-sys.path.append(r'E:\Arxius varis\PhD\3rd_year\Code\Functions')
+# !!! NEED to set the path to 
+# Alg_Comb_Single_Image_Strain.py
+# as the console working directory
+Project_main_path = os.getcwd()
+if 'EMicrographs_to_AtoModels' in Project_main_path:
+    Project_main_path = Project_main_path[:Project_main_path.find('EMicrographs_to_AtoModels')-1]
+# Project_main_path has the EMicrographs_to_AtoModels folder
+sys.path.append(Project_main_path)
 
-# General functions
-import Segmentation_1stAprox as Segment
+from EMicrographs_to_AtoModels.Functions.General_functions import Segmentation_1stAprox as Segment
+from EMicrographs_to_AtoModels.Functions.General_functions import Phase_Identificator as PhaseIdent
+
 
 
 '''
 Functions for atomistic modelling
 '''
 
-
 def uce_to_cif(
         path_to_uce_unitcell, phase_name, save_filepath,
-        templato_filepath = r'E:\Arxius varis\PhD\3rd_year\Code\Functions\difftool_dll\templato.txt'):
+        templato_filepath = r'\EMicrographs_to_AtoModels\Functions\General_functions\difftool_dll\templato.txt'):
     '''
     Function to convert the .uce files used for the simulation of the diffraction 
     pattern to .cif files containing the exact same information but to be used
@@ -53,15 +64,15 @@ def uce_to_cif(
                                             with the phase itself)
     save_filepath : where to save the .cif file, folder directory without the file name nor extension
     templato_filepath : path to templato folder, change it if changes
-        DESCRIPTION. The default is r'E:\Arxius varis\PhD\3rd_year\Code\Functions\difftool_dll\templato.txt'.
+        DESCRIPTION. The default is '\EMicrographs_to_AtoModels\Functions\General_functions\difftool_dll\templato.txt'.
 
     Returns
     -------
     path_to_cif_unitcell : str, path to the newly generated .cif file
 
     '''
-    
-    
+    # Fix the templato_filepath to the rel module path
+    templato_filepath = Project_main_path +'\\EMicrographs_to_AtoModels\Functions\General_functions\difftool_dll\templato.txt'
     
     raw_file_data = open(path_to_uce_unitcell)
     
@@ -533,7 +544,7 @@ def uce_to_cif(
 
 
 def cif_from_uce_All_found_phases(
-        analysed_image, unit_cells_path):
+        analysed_image, unit_cells_path, results_dir):
     '''
     Ensure that all the phases found, and that will be included in
     the atomistic model, have a cif file representing them so the atomistic 
@@ -543,6 +554,8 @@ def cif_from_uce_All_found_phases(
     ----------
     analysed_image :  analysed_image object of the only image analysed
     unit_cells_path: str to the uce unit cells
+    results_dir: dir to results folder, where the model_cells folder 
+                and the rest, GPA and so on need to be allocated
         
     Returns
     -------
@@ -552,7 +565,7 @@ def cif_from_uce_All_found_phases(
     
     # Build a folder named model_cells in the path before the unit cells are checked
     # to place the conversion from uce to cif that are needed to build the models
-    model_cells_filepath = unit_cells_path[:unit_cells_path.find('unit_cells')] + '\\' + 'model_cells' + '\\'
+    model_cells_filepath = results_dir + '\\' + 'model_cells' + '\\'    
     path_model_cells = os.path.isdir(model_cells_filepath)
     if path_model_cells == False:
         os.mkdir(model_cells_filepath)
@@ -3413,32 +3426,6 @@ and given a set of planes in that zone separated a given angle between
 '''
 
 
-import numpy as np
-import matplotlib.pyplot as plt
-import os
-import gdspy
-import math
-import sys
-sys.path.append(r'E:\Arxius varis\PhD\3rd_year\Code\Functions')
-
-import Phase_Identificator as PhaseIdent
-
-
-import ase
-from ase.io import read, write
-from ase.visualize import view
-from abtem.visualize import show_atoms
-from ase.build import surface, make_supercell, find_optimal_cell_shape, rotate
-import mendeleev as mdl
-
-
-from math import gcd
-import numpy as np
-from numpy.linalg import norm, solve
-
-from ase.build import bulk
-
-
 
 def get_surface_basis(
         lattice, indices, layers, vacuum=None, 
@@ -5822,9 +5809,10 @@ class Wyckoff_position:
         self.unique = unique
             
 
+
 def Wyckoff_pos_Checker(
         space_group, rel_prim_position,
-        wyckoff_filepath = r'E:\Arxius varis\PhD\3rd_year\Code\Functions\difftool_dll\Wyckoff_database.txt'):
+        wyckoff_filepath = r'\EMicrographs_to_AtoModels\Functions\General_functions\difftool_dll\Wyckoff_database.txt'):
     '''
     Given a space group number, and a relative position within the unit cell,
     indicate which is the wyckoff position in terms of multiplicty for it
@@ -5839,12 +5827,15 @@ def Wyckoff_pos_Checker(
                         list with 3 floats
     wyckoff_filepath : TYPE, optional
         DESCRIPTION. The default is
-        r'E:\Arxius varis\PhD\3rd_year\Code\Functions\difftool_dll\Wyckoff_database.txt'
+        r'\EMicrographs_to_AtoModels\Functions\General_functions\difftool_dll\Wyckoff_database.txt'
 
     Returns
     -------
     wyckoff_multiplictiy
     '''
+    # Set the Wyckoff filepath fixed relative to module
+    wyckoff_filepath = Project_main_path + '\\EMicrographs_to_AtoModels\Functions\General_functions\difftool_dll\Wyckoff_database.txt'
+
 
     # STEP 1: Extract wyckoff info from databse file        
     raw_wyckoff_data = open(wyckoff_filepath, encoding = 'utf-8')
