@@ -565,7 +565,7 @@ def Peak_Detection_Wrapped_CNN(
     # Load CNN model
     device = torch.device("cuda")
     
-    CNN_model = torch.load(r'D:\Marc_Botifoll\Data_ML\CNN_Model_PeakFinding\DL2.pt')
+    CNN_model = torch.load(r'' + Project_main_path + '\\EMicrographs_to_AtoModels\Functions\PeakDet_Segment\Peak_detector\DL2.pt')
     
     #CNN prediction
     CNN_prediction, _ = CNN_model.predict(FFT_image_array)
@@ -625,7 +625,7 @@ def Peak_Detection_Wrapped_Standarised_CNN(
     device = torch.device("cuda")
     
     
-    CNN_model = torch.load(r'D:\Marc_Botifoll\Data_ML\CNN_Model_PeakFinding\DL2.pt')
+    CNN_model = torch.load(r'' + Project_main_path + '\\EMicrographs_to_AtoModels\Functions\PeakDet_Segment\Peak_detector\DL2.pt')
     
     # obtain the standarised FFT from which to compute the peaks (no log),  
     # and where it is extracted from the whole FFT 
@@ -723,7 +723,7 @@ def Peak_Detection_Wrapped_Standarised_withFOV_CNN(
     device = torch.device("cuda")
     
     
-    CNN_model = torch.load(r'D:\Marc_Botifoll\Data_ML\CNN_Model_PeakFinding\DL2.pt')
+    CNN_model = torch.load(r'' + Project_main_path + '\\EMicrographs_to_AtoModels\Functions\PeakDet_Segment\Peak_detector\DL2.pt')
     
     # obtain the standarised FFT from which to compute the peaks (no log),  
     # and where it is extracted from the whole FFT 
