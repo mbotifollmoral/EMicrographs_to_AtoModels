@@ -72,7 +72,7 @@ def uce_to_cif(
 
     '''
     # Fix the templato_filepath to the rel module path
-    templato_filepath = Project_main_path +'\\EMicrographs_to_AtoModels\Functions\General_functions\difftool_dll\templato.txt'
+    templato_filepath = r'' + Project_main_path +'\\EMicrographs_to_AtoModels\Functions\General_functions\difftool_dll\templato.txt'
     
     raw_file_data = open(path_to_uce_unitcell)
     
@@ -5834,7 +5834,7 @@ def Wyckoff_pos_Checker(
     wyckoff_multiplictiy
     '''
     # Set the Wyckoff filepath fixed relative to module
-    wyckoff_filepath = Project_main_path + '\\EMicrographs_to_AtoModels\Functions\General_functions\difftool_dll\Wyckoff_database.txt'
+    wyckoff_filepath = r''+ Project_main_path + '\\EMicrographs_to_AtoModels\Functions\General_functions\difftool_dll\Wyckoff_database.txt'
 
 
     # STEP 1: Extract wyckoff info from databse file        
