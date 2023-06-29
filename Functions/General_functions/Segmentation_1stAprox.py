@@ -2137,7 +2137,7 @@ def Conts_verts_per_region_shortest_longest_path(
 
 
 
-
+upload to github only this file
 def Unify_Contour_Vectors(
     conts_vertx_per_region, labels_equally_oriented_as_ref):
     '''
@@ -2174,6 +2174,25 @@ def Unify_Contour_Vectors(
     
     conts_vertx_per_region_unified['99_vertexs'] = np.asarray(conts_vertx_per_region_unified['99_vertexs'])
     conts_vertx_per_region_unified['99_rel_vertexs'] = np.asarray(conts_vertx_per_region_unified['99_rel_vertexs'])   
+    
+    
+    # Remove the coincident contours that overlap and point at opposite directions
+    conts_check = conts_vertx_per_region_unified['99_contours'].copy()
+    
+    order_pos1 = list(map(lambda x: [x.init_coords, x.final_coords], conts_check))
+    order_pos2 = list(map(lambda x: [x.final_coords, x.init_coords], conts_check))
+    
+    final_conts = []
+    
+    for cont_check, order1, order2 in zip(
+            conts_check, order_pos1, order_pos2):
+        
+        if order1 not in order_pos2:
+            final_conts.append(cont_check)
+            
+            
+    conts_vertx_per_region_unified['99_contours'] = final_conts
+        
     
     return conts_vertx_per_region_unified
 
