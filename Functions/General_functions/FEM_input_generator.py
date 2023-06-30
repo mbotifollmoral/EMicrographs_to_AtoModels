@@ -165,7 +165,7 @@ def Build_FEM_gds(
     gds_cell.write_svg(FEM_models_filepath + 'svg_' + analysed_image.image_in_dataset.name + '.svg')
     
     # Display all cells using the internal viewer.
-    gdspy.LayoutViewer(gds_lib)  
+    # gdspy.LayoutViewer(gds_lib)  
     
     gdspy.current_library = gdspy.GdsLibrary()
     

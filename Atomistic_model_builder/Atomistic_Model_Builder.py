@@ -3083,7 +3083,8 @@ def Combine_xyz_supercells(
     for file_name in os.listdir(temp_xyz_files_folder_directory):
         file_name_c = temp_xyz_files_folder_directory +'\\'+file_name
         file_extension = file_name_c[::-1][:(file_name_c[::-1]).find('.')][::-1]
-        if file_extension == 'xyz' and file_name[:6] != 'global':
+        
+        if file_extension == 'xyz' and 'temp_xyz' in file_name:
             supercell_xyz = open(file_name_c)
             list_lines = supercell_xyz.readlines()
             numb_atoms = int(list_lines[0])
