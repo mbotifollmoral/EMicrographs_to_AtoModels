@@ -2136,8 +2136,6 @@ def Conts_verts_per_region_shortest_longest_path(
     return conts_vertx_per_region_shortest, conts_vertx_per_region_longest
 
 
-
-upload to github only this file
 def Unify_Contour_Vectors(
     conts_vertx_per_region, labels_equally_oriented_as_ref):
     '''
