@@ -1876,13 +1876,15 @@ def Original_BoxSize_StrainedModel(
     Box_strain_pixels : same as used in Distort_AtoModel_Region
     atomregmodel_path_final : complete path to the final atomistic model after
                             all the strain and merging and segm/chem refinement
-
+    pixel_size_whole: in nm, so need to change it to angstroms
+                        as the file is in angstroms cords
     Returns
     -------
     path_finalcut_strainedmodel.
 
     '''
-    
+    # !!! UNITS: change pixel size in nm to angstrom
+    pixel_size_whole = pixel_size_whole*10
     
     # Return the box of strained data to the size we originally wanted
     B_strain_aug_fact = -Original_B_strain_aug_fact
@@ -1896,7 +1898,6 @@ def Original_BoxSize_StrainedModel(
                                            (total_pixels_whole-Box_strain_pixels[0])*pixel_size_whole])
     
     
-
     # list of atoms that are inside the box we want
     filtered_region_atom_list, indexes_to_keep_cut = read_xyz(
         atomregmodel_path_final, region_to_strain_atomcords, extra=0)
