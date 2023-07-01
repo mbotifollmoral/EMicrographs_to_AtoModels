@@ -72,7 +72,7 @@ def uce_to_cif(
 
     '''
     # Fix the templato_filepath to the rel module path
-    templato_filepath = r'' + Project_main_path +'\\EMicrographs_to_AtoModels\Functions\General_functions\difftool_dll\templato.txt'
+    templato_filepath = r'' + Project_main_path +'\\EMicrographs_to_AtoModels\Functions\General_functions\difftool_dll\\templato.txt'
     
     raw_file_data = open(path_to_uce_unitcell)
     
