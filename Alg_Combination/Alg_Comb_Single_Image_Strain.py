@@ -87,13 +87,13 @@ Template matching and generation of the relative coordinates per image over the 
 # dataset_system_path_name = filedialog.askdirectory(parent=root,initialdir="/",title='Folder with the images dataset')
 
 
-dataset_system_path_name = r'D:\Marc_Botifoll\Global_Results_per_Device\InSb_InP_TransvNW_3\Micrographs\\'
+dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_InP_TransvNW_3\Micrographs\\'
+dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_Sn_VLS2\Micrographs\\'
+
 
 # Browse the images in the folder and also calibrate
 # !!! CALIBRATION CORRECTION DONE HERE --> NO NEED TO CHANGE THE CALIBRATION OF THE IMAGES AT ANY POINT
 # !!! UNLESS IMAGES ARE BINNED
-
-
 
 
 images_in_dataset_list, pixel_sizes = HighToLowTM.Browse_Dataset_Images_and_Recalibrate(
@@ -156,7 +156,7 @@ Functions for finding out the high mag image within the segmented map
 
 # Initialise the possible unit cells before going into the image per image analysis as the step is common
 # Get the possible unit cells into a Crystal object to hold a DP simulation
-unit_cells_path = r'D:\Marc_Botifoll\unit_cells'
+unit_cells_path = r'E:\Arxius varis\PhD\3rd_year\Code\unit_cells'
 
 
 # Initialise the crystal objects for every possible unit cell in the path of possible cells
@@ -279,7 +279,6 @@ FFT_whole, _ =  ImCalTrans.Compute_FFT_ImageArray(np.asarray(image_in_dataset_wh
 
 #%%
 
-
 '''
 # FFT indexation interactive printing
 '''
@@ -297,7 +296,6 @@ for crop_index_i in range(1, analysed_image_only.crop_index):
     crop_list_refined_cryst_spots = crop_outputs_dict[str(crop_index_i) + '_list_refined_cryst_spots']
     refined_pixels = crop_outputs_dict[str(crop_index_i) + '_refined_pixels']
     spots_int_reference = crop_outputs_dict[str(crop_index_i) + '_spots_int_reference']
-    
     if len(refined_pixels) > 0:
         fft_info_data[crop_key_for_dict] = FFT_indexer.Collect_data(
             FFT_image_array, refined_pixels, spots_int_reference, crop_list_refined_cryst_spots)
@@ -309,21 +307,6 @@ FFT_indexer.fft_info_data = fft_info_data
 
 FFT_indexer.main()
 
-
-# !!! Hyperparameter, number of pixels per spot to mask
-bragg_mask_size = 5  # Pixels
-
-# Bragg filter phases as found, for all the phases found for all the crops
-# where phases are found
-general_bragg_filterings = FFT_indexer.Indexed_FFT_BraggFiltering(
-    analysed_image_only, image_in_dataset_whole, bragg_mask_size)
-
-# !!! Hyperparameter, number of phases to Bragg filter per crop
-phases_per_crop = 1
-# Plot the Bragg filtered images
-FFT_indexer.Colour_Mix_BraggFilteredPhases(
-    image_in_dataset_whole, general_bragg_filterings, phases_per_crop = 1)
-
    
 #%%
 
@@ -331,6 +314,9 @@ FFT_indexer.Colour_Mix_BraggFilteredPhases(
 # GPA Computation and calculation of the virutal crystal nature   
 '''
 
+# Retrieve data extracted from the reference 
+analysed_image_only = list_analysed_images[0]
+crop_outputs_dict = analysed_image_only.Crop_outputs
 
 # Image in dataset base information
 image_in_dataset_whole = images_in_dataset_list[0]
@@ -346,17 +332,14 @@ FFT_whole, _ =  ImCalTrans.Compute_FFT_ImageArray(np.asarray(image_in_dataset_wh
 # This is to automate the definition of the region where the substrate is found
 # to take the reference from it
 label_of_GPA_ref = GPA_sp.Define_Region_as_GPA_Reference(
-    images_segmented[0])
+    analysed_image_only, images_segmented[0])
 label_of_substrate = GPA_sp.Define_Region_as_GPA_Reference(
-    images_segmented[0])
+    analysed_image_only, images_segmented[0])
+
 
 # With the 1st approximation just define the label  of the reference we want
 # label_of_GPA_ref = 4
 
-
-# Retrieve data extracted from the reference 
-analysed_image_only = list_analysed_images[0]
-crop_outputs_dict = analysed_image_only.Crop_outputs
 
 # Pixels within the whole image in which the crop of the reference is taken, 
 # so the box of the reference itself [first_row,last_row,first_col,last_col]
@@ -385,7 +368,7 @@ best_cryst_spot_GPA_ref = crop_list_refined_cryst_spots_GPA_ref[0]
 
 # Retrieve the best spot pair to be considered the GPA g vectors
 best_GPA_ref_spot_pair = GPA_sp.Get_GPA_best_g_vects_pair(
-    analysed_image_only, label_of_GPA_ref)
+    analysed_image_only, label_of_GPA_ref, images_segmented[0])
 
 # Find the best spots considered in that crystal phase, which should 
 # be the best ones to constitute the GPA g vectors
@@ -410,7 +393,6 @@ found_phase_name_GPA_ref = best_cryst_spot_GPA_ref.phase_name
 # NOT of the whole image
 cord_spot_1_GPA_ref = refined_pixels_GPA_ref[int(spot1_int_ref_GPA_ref)]
 cord_spot_2_GPA_ref = refined_pixels_GPA_ref[int(spot2_int_ref_GPA_ref)]
-
 
 
 
@@ -509,6 +491,29 @@ for result_image_name, result_image_array in zip(['exx','eyy','exy','eyx','rot',
 
 
 #%%
+'''
+Bragg filtering
+'''
+
+
+# Compute the number of pixels per spot to mask
+bragg_mask_size = FFT_indexer.Bragg_filter_mask_size(
+    GPA_resolution, image_in_dataset_whole, mask_reduction_factor = 10)
+
+# Bragg filter phases as found, for all the phases found for all the crops
+# where phases are found
+general_bragg_filterings = FFT_indexer.Indexed_FFT_BraggFiltering(
+    analysed_image_only, image_in_dataset_whole, bragg_mask_size)
+
+# !!! Hyperparameter, number of phases to Bragg filter per crop
+phases_per_crop = 1
+# Plot the Bragg filtered images
+FFT_indexer.Colour_Mix_BraggFilteredPhases(
+    image_in_dataset_whole, general_bragg_filterings, phases_per_crop = 1)
+
+
+
+#%%
 
 
 '''
@@ -558,7 +563,7 @@ a_v_cell, b_v_cell, c_v_cell = GPA_AtoMod.Find_virtual_a_cell_c_cell_params(
 
 # Build the virtual cif file for the reference region
 path_to_v_unitcell = GPA_AtoMod.Build_virtual_crystal_cif(
-    model_cells_filepath, found_phase_name_GPA_ref, 
+    model_cells_filepath, found_phase_name_GPA_ref, label_of_GPA_ref,
     a_v_cell, b_v_cell, c_v_cell)
 
 
@@ -572,9 +577,7 @@ path_to_v_unitcell = GPA_AtoMod.Build_virtual_crystal_cif(
 #     GPA_resolution, model_cells_filepath)
 
 
-
-
-# Build the virtual cells for all the regions that are not the reference     
+# Build the virtual UNIT cells for all the regions that are not the reference     
 # making them coincide with the same interplanar distances as the reference
 paths_to_virt_ucells, scored_spot_pairs_found, scaled_cords_spots = GPA_AtoMod.Build_All_Virtual_Crysts_SameDistRef(
     analysed_image_only, image_in_dataset_whole, best_GPA_ref_spot_pair,
@@ -582,13 +585,11 @@ paths_to_virt_ucells, scored_spot_pairs_found, scaled_cords_spots = GPA_AtoMod.B
     images_segmented[0],  label_of_GPA_ref, GPA_resolution, model_cells_filepath)
 
 
-
 #%%
 
 '''
 Base atomistic model builder
 '''
-
 
 # from the segmented image, skip some contours to smooth the global contour down
 conts_vertx_per_region_skept = SegmWrap.Skip_n_contours_region_region_intercon(
@@ -601,7 +602,7 @@ conts_vertx_per_region = Segment.Relative_Vertexs_Contours(
     relative_positions_to_segment[0], pixel_sizes_to_segment[0])
 
 
-z_thickness_model = 1 # nm
+z_thickness_model = 2 # nm
 
 
 # If wanted, build the device with the perfect unmodified crystals from database    
@@ -613,7 +614,7 @@ z_thickness_model = 1 # nm
 atom_models_filepath, labels_equally_oriented_as_ref = AtomBuild.Build_DeviceSupercell_Virtual_To_Distort(
     analysed_image_only, model_cells_filepath, z_thickness_model, 
     conts_vertx_per_region, label_of_GPA_ref, best_GPA_ref_spot_pair, 
-    paths_to_virt_ucells, scored_spot_pairs_found)
+    paths_to_virt_ucells, scored_spot_pairs_found, scaled_cords_spots)
 
 
 
@@ -660,9 +661,10 @@ Box_strain_pixels = [B_strain_y_i, B_strain_y_f, B_strain_x_i, B_strain_x_f]
 
 # !!! Strain distortion to models Hyperparameters
 B_strain_aug_fact = 0.15
-min_distance_tol = 0.1
+min_dist_red_fact = 1/3
 purge_interatomic_distance = True
 purge_wrong_displacements = False
+
 
 
 # Path to the global cell if it is just one cell, named global...
@@ -673,10 +675,9 @@ purge_wrong_displacements = False
 path_global_strained_purged = GPA_AtoMod.Distort_AtoModel_Region(
     atom_models_filepath, Dispx, Dispy, Box_strain_pixels, 
     pixel_size_whole, total_pixels_whole,
-    B_strain_aug_fact = B_strain_aug_fact, min_distance_tol = min_distance_tol,
+    B_strain_aug_fact = B_strain_aug_fact, min_dist_red_fact = min_dist_red_fact,
     purge_interatomic_distance = purge_interatomic_distance, 
     purge_wrong_displacements = purge_wrong_displacements)
-
 
 
 
@@ -686,10 +687,9 @@ path_global_strained_purged = GPA_AtoMod.Distort_AtoModel_Region(
 Post-strain chemistry/segmentation refinement
 '''
 
-    
 # Make the difference to how the refinement is done depending on 
 # the equally oriented crystals found
-if labels_equally_oriented_as_ref != 0:
+if labels_equally_oriented_as_ref > 1:
     # If many crystals are found with the same orientation, use the 
     # path_region_to_strained_purged to the global strained purged model
     atomregmodel_path_final = GPA_AtoMod.Refine_StrainedRegion_SingleAtomBlock_Segmentation(
@@ -699,7 +699,7 @@ if labels_equally_oriented_as_ref != 0:
         paths_to_virt_ucells, collapse_occupancies = True)
     
 else:
-    # labels_equally_oriented_as_ref == 0:
+    # labels_equally_oriented_as_ref == 1, so only the reference region:
     # if the crystals are in different orientations and belong to different
     # space groups, then merge the multiple atomic models obtained from the
     # different labels and their distortion

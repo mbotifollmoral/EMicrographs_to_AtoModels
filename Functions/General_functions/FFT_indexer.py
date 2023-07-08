@@ -119,8 +119,6 @@ class Collect_data():
                     
             
             
-
-            
             return info    
         
         
@@ -563,11 +561,39 @@ def Colour_Mix_BraggFilteredPhases(
                         
         
 
+def Bragg_filter_mask_size(
+        GPA_resolution, image_in_dataset, mask_reduction_factor = 5):
+    '''
+    Define the Bragg mask size depending on the GPA mask size,
+    basically cut the GPA mask into mask_reduction_factor sectors, and this
+    will act as the Bragg mask size
+
+    Parameters
+    ----------
+    GPA_resolution : GPA resolution, in nm
+    image_in_dataset : 
+    mask_reduction_factor : int, times the GPA resolution is divided to form
+                            the Bragg mask
+        DESCRIPTION. The default is 5.
+
+    Returns
+    -------
+    bragg_mask_size : mask size in number of pixels
+
+    '''
+    
+    FFT_calibration_whole = image_in_dataset.FFT_calibration
+    
+    
+    GPA_resol_nminv = 1/GPA_resolution
+    GPA_resol_pixels = GPA_resol_nminv/FFT_calibration_whole
+    
+    bragg_mask_size = int(np.ceil(GPA_resol_pixels/mask_reduction_factor))
+           
+    
+    return bragg_mask_size
 
 
-
-
-   
     
     
 def main(): 

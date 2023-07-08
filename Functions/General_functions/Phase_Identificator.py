@@ -552,7 +552,14 @@ def ZAs_scores(
         hkls2_references.append(hkl2_reference)
         
         angle_theo = abs(crystal_object.angle(hkl1,hkl2))
-        score_val = np.sqrt((d1-d1_theo)**2+(d2-d2_theo)**2+(angle-angle_theo)**2)
+        # Old score, not normalising over the distances
+        # score_val = np.sqrt((d1-d1_theo)**2+(d2-d2_theo)**2+(angle-angle_theo)**2)
+        # !!! New score metric, normalising over the distance, so if the distance is
+        # bigger it is easier to provide a good score, while if the distance is smaller
+        # so further rings, the difference must be really small to compensate 
+        # the instrinsically small value
+        # And now it is not dimensional which is better physcially speaking
+        score_val = np.sqrt(((d1-d1_theo)/d1_theo)**2+((d2-d2_theo)/d2_theo)**2+(angle-angle_theo)**2)
         score.append(score_val)
     
     ZA_score = np.asarray(score)

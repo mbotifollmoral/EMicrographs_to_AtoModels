@@ -740,10 +740,13 @@ def Find_virtual_a_cell_c_cell_params(
     for solution in solutions:
         # ensure both checked values are real to make the comparison
         solution[1] = 1+ solution[1]
-        
         # convert sympy elements into numpy elements
         if type(solution[0]) == sympy.core.numbers.Float:
             solution[0] = float(solution[0])
+        elif type(solution[0]) == sympy.core.symbol.Symbol:
+            # if the expression is simbolic depending on 1 of the 
+            # parameters, then go to next possible solution
+            continue
         else:
         # elif type(solution[0]) == sympy.core.mul.Mul:
             solution[0] = complex(solution[0])
@@ -751,6 +754,10 @@ def Find_virtual_a_cell_c_cell_params(
         # convert sympy elements into numpy elements
         if type(solution[1]) == sympy.core.numbers.Float:
             solution[1] = float(solution[1])
+        elif type(solution[1]) == sympy.core.symbol.Symbol:
+            # if the expression is simbolic depending on 1 of the 
+            # parameters, then go to next possible solution
+            continue
         else:
         # elif type(solution[0]) == sympy.core.mul.Mul:
             solution[1] = complex(solution[1])
@@ -760,6 +767,7 @@ def Find_virtual_a_cell_c_cell_params(
             if solution[0]> 0 and solution[1]>0:
                 final_solution = solution
                 solution_found = 1
+                break
             
             
     
@@ -799,7 +807,7 @@ def Find_virtual_a_cell_c_cell_params(
     
         b_v_cell = n1*a_v_cell
         c_v_cell = n2*a_v_cell
-    
+
     return a_v_cell, b_v_cell, c_v_cell 
 
 
@@ -807,7 +815,8 @@ def Find_virtual_a_cell_c_cell_params(
 
 
 def Build_virtual_crystal_cif(
-        cif_cells_folder_directory, base_phase_name, a_v_cell, b_v_cell, c_v_cell):
+        cif_cells_folder_directory, base_phase_name, label_region,
+        a_v_cell, b_v_cell, c_v_cell):
     
     base_cell_filepath = cif_cells_folder_directory + '\\' + base_phase_name + '.cif'
     
@@ -841,7 +850,7 @@ def Build_virtual_crystal_cif(
         
         
     # create the .cif file
-    path_to_v_unitcell = cif_cells_folder_directory + '\\' + base_phase_name + '_v' + '.cif'
+    path_to_v_unitcell = cif_cells_folder_directory + '\\' + base_phase_name + '_' + str(int(label_region)) + '_v.cif'
     
     path_to_v_unitcell_Path = Path(path_to_v_unitcell)
     file_already_created = path_to_v_unitcell_Path.is_file()
@@ -1206,6 +1215,13 @@ def Build_All_Virtual_Crysts_SameDistRef(
     So we search for the hkl1 and hkl2 of the spots that are close to 
     the g vectors 1 and 2 and make the virtual crystal whose hkl1 and hkl2
     have the distances we have subpixel refined for g1 and g2
+    Both coses considered, if two spots are found around the GPA spots,
+    1 at inside each mask of the GPA mask, in case the virtual crystal
+    is formed with the information from both spots
+    or maybe just 1 spot inside 1 of the GPA spots, and within its mask,
+    in which case the virtual cell is built by this information
+    or if no one is found just use the base crystal as there is no information
+    to build the virtua crystal
 
     Parameters
     ----------
@@ -1319,11 +1335,11 @@ def Build_All_Virtual_Crysts_SameDistRef(
     
     # list to store info for the whole process, if needed
     paths_to_virt_ucells = []
+    scored_spot_pairs_found = []
+    scaled_cords_spots = []
     
     for compl_label in labels_unique_no_ref:
         # store the hkl 1 and 2 found for every virutal cell created
-        scored_spot_pairs_found = []
-        scaled_cords_spots = []
         # store all the coorindates from where crystals for 
         # just one
         all_possible_coords_to_check = []
@@ -1484,9 +1500,9 @@ def Build_All_Virtual_Crysts_SameDistRef(
                 base_cell_params, hkl_corresp_spot_1, hkl_corresp_spot_2, 
                 dist_spot_1_ref_subpix, dist_spot_2_ref_subpix)
                     
-            # Build the cif file for the reference region
+            # Build the cif file for the region
             path_to_v_unitcell = Build_virtual_crystal_cif(
-                model_cells_filepath, found_phase_name_compl_label, 
+                model_cells_filepath, found_phase_name_compl_label, compl_label,
                 a_v_cell, b_v_cell, c_v_cell)
             
             paths_to_virt_ucells.append(path_to_v_unitcell)
@@ -1502,8 +1518,79 @@ def Build_All_Virtual_Crysts_SameDistRef(
                     scaled_cords_spots.append([spot_2_corresp_scalcords, spot_1_corresp_scalcords])
                     scored_spot_pairs_found.append(spot_pair)
                     break
+                
+            # if found then go to next iteration (next label, next region)   
+            # we set continue as otherwise it would meet the other elif condition
+            # so with continue we skip it
+            continue   
+                
+        
+        # Addition condition for what would happen if only 1 is found
+        # around the mask
+        elif spot_1_corresp_found == 1 or spot_2_corresp_found == 1:  
+            # Assign the same plane in both cases 
+            if spot_1_corresp_found == 1:
+                
+                hkl_corresp_spot = hkl_corresp_spot_1
+                dist_spot_com_ref_subpix = dist_spot_1_ref_subpix
+                spot_int_ref_com = spot_1_int_ref
+                spot_com_corresp_scalcords = spot_1_corresp_scalcords
+                
+            if spot_2_corresp_found == 1: 
+            
+                hkl_corresp_spot = hkl_corresp_spot_2
+                dist_spot_com_ref_subpix = dist_spot_2_ref_subpix
+                spot_int_ref_com = spot_2_int_ref
+                spot_com_corresp_scalcords = spot_2_corresp_scalcords
+                
+            
+            # then at this point we have two planes and two distances 
+            # build the virtual crsytal based on this information         
+            cif_base_cell_filepath = model_cells_filepath + found_phase_name_compl_label + '.cif'
+            
+            # build the ase crystal path
+            ase_unit_cell_base = ase.io.read(cif_base_cell_filepath)
+            
+            spacegroup_cell_base = ase_unit_cell_base.info['spacegroup'].no
+            
+            a_base, b_base, c_base, alfa_base, beta_base, gamma_base = ase_unit_cell_base.cell.cellpar()
+            
+            base_cell_params = a_base, b_base, c_base, alfa_base, beta_base, gamma_base
+            
+            # compute the virtual cell parameters 
+            a_v_cell, b_v_cell, c_v_cell = Find_virtual_a_cell_c_cell_params(
+                base_cell_params, hkl_corresp_spot, hkl_corresp_spot, 
+                dist_spot_com_ref_subpix, dist_spot_com_ref_subpix)
                     
+            # Build the cif file for the reference region
+            path_to_v_unitcell = Build_virtual_crystal_cif(
+                model_cells_filepath, found_phase_name_compl_label, compl_label,
+                a_v_cell, b_v_cell, c_v_cell)
+            
+            paths_to_virt_ucells.append(path_to_v_unitcell)
+            
+            
+            # append the scored spot pair that contains 1 of the spots found
+            # the first one that is found which will be the best score
+            for spot_pair in best_cryst_spot_compl_label.spot_pairs_obj:
+                if (spot_pair.spot1_int_ref == spot_int_ref_com or spot_pair.spot2_int_ref == spot_int_ref_com):
+                    # we add the same scaled coords for both spots even though they
+                    # will not correspond to the cords of the spot pair! watch out
+                    scaled_cords_spots.append([spot_com_corresp_scalcords, spot_com_corresp_scalcords])
+                    scored_spot_pairs_found.append(spot_pair)
+                    break
+                    
+                if (spot_pair.spot1_int_ref == spot_int_ref_com or spot_pair.spot2_int_ref == spot_int_ref_com):
+                    # we add the same scaled coords for both spots even though they
+                    # will not correspond to the cords of the spot pair! watch out
+                    scaled_cords_spots.append([spot_com_corresp_scalcords, spot_com_corresp_scalcords])
+                    scored_spot_pairs_found.append(spot_pair)
+                    break
 
+            
+            # Go to next iteration to dont check next condition
+            continue
+        
             
         else:
             # Not enough spots 0 or 1 were found to build the virtual crystal
@@ -1537,7 +1624,7 @@ def Purge_Atoms_InterDistance_Tolerance(
     min_distance_tol : minimum interatomic distance in Angstroms,
                     smaller distances will mean be more permissive while
                     larger distances would remove more atoms
-        DESCRIPTION. The default is 0.05.
+        DESCRIPTION. The default is 0.1.
 
     Returns
     -------
@@ -1626,11 +1713,65 @@ def Purge_Atoms_InterDistance_Tolerance(
                 
 
 
+def Get_Average_NearestNeighbour_Atomod(
+        region_atom_list):
+    '''
+    Compute the average distance between closest atoms for a list of Atom
+    objects with their poisition, by computing the smallest distance of each
+    atom with the rest and getting the minimum for all and averaging
+
+    Parameters
+    ----------
+    region_atom_list : list of the atoms directly in which we want
+                                to compute the value
+
+    Returns
+    -------
+    avg_nearest_neighb : average distance of the closeset neighbour, in angstroms
+
+    '''
+    
+    
+    list_atoms_copy = region_atom_list.copy()
+    
+    
+    closest_neighbours = []
+    # iterate over a list that never changes
+    for atom in region_atom_list:
+
+        pos_x = atom.x
+        pos_y = atom.y
+        pos_z = atom.z
+        
+        # List of the rest of the atoms to compute the distances
+        list_atoms_compare = list_atoms_copy.copy()
+        if atom in list_atoms_compare:
+            list_atoms_compare.remove(atom)
+        else:
+            continue
+        
+        positions_arr = np.array(list(map(lambda a: [a.x, a.y, a.z], list_atoms_compare)))
+        
+        
+        distances = np.sqrt((positions_arr[:,0] - pos_x)**2 + (positions_arr[:,1] - pos_y)**2 + (positions_arr[:,2] - pos_z)**2)
+    
+        # The closest neighbour is the atom that is in smallest distance separation
+        closest_neigh = np.min(distances)
+        
+        closest_neighbours.append(closest_neigh)
+    
+    # compute the average value from all closest neighbours found 
+    avg_nearest_neighb = np.mean(closest_neighbours)
+    
+    return avg_nearest_neighb
+
+
+
 
 def Distort_AtoModel_Region(
         atom_models_filepath, Dispx, Dispy, Box_strain_pixels, 
         pixel_size_whole, total_pixels_whole,
-        B_strain_aug_fact = 0.15, min_distance_tol = 0.1,
+        B_strain_aug_fact = 0.15, min_dist_red_fact = 1/3,
         purge_interatomic_distance = True, purge_wrong_displacements = False):
     '''
     The main function distorting the atomic models originally built by
@@ -1676,10 +1817,14 @@ def Distort_AtoModel_Region(
                 moved so more computationally demanding
         DESCRIPTION. The default is 0.15.
         
-    min_distance_tol : minimum interatomic distance in Angstroms,
-                    smaller distances will mean be more permissive while
-                    larger distances would remove more atoms
-        DESCRIPTION. The default is 0.1., in Angstroms
+    min_dist_red_fact : minimum distance reduction factor
+                factor by which we multiply the average distance 
+                between closest neighbours to get a the minimum distance below
+                which the atoms closer than this will be removed
+                so minimum distance is computed by 
+                min_distance_tol = (min_dist_red_fact)*Get_Average_NearestNeighbour_Atomod(
+                        region_atom_list)
+        DESCRIPTION. The default is 1/3.
     purge_interatomic_distance : purge by the interatomic distances between
                                 the atoms, by a value defined by min_distance_tol
                                 in Angstroms
@@ -1760,9 +1905,9 @@ def Distort_AtoModel_Region(
     region_to_strain_atomcords = region_to_strain_atomcords*10
     
 
-    # check if there exists a combined supercell in the path
+    # Check if there exists a combined supercell in the path
     # as this would mean it is built upon some equally oriented structures
-    global_merged = True
+    global_merged = False
     for atomistic_model in os.listdir(atom_models_filepath):
         if '.xyz' in atomistic_model:
             if 'global_device_supercell' in atomistic_model:
@@ -1801,6 +1946,13 @@ def Distort_AtoModel_Region(
         # list of atoms that are gonna handle the displacements for that given model
         region_to_strain_atom_list, indexes_to_keep_cut = read_xyz(
             atomod_filepath, region_to_strain_atomcords, extra=0)
+        
+  
+        # get the average distance between closest neigbhours to use a fraction 
+        # of it as the minimum distance to discar atoms after the straining
+        min_distance_tol = (min_dist_red_fact)*Get_Average_NearestNeighbour_Atomod(
+                region_to_strain_atom_list)
+        
         
         # Add name to the cutting of the atoms within the filepath
         path_region_to_strain_base = atom_models_filepath + region_cut_base + label_region +'.xyz'
@@ -1963,8 +2115,6 @@ def Refine_StrainedRegion_SingleAtomBlock_Segmentation(
     # they are linked 1 to 1 to the labels_equally_oriented_as_ref
     primit_cell_pos_label = []
 
-    # for all the labels equally orietned as reference except reference
-    # filter the segmentation information
     for label_region in labels_equally_oriented_as_ref:
         
         # information from reference region, label_of_GPA_ref
@@ -1981,7 +2131,7 @@ def Refine_StrainedRegion_SingleAtomBlock_Segmentation(
         # find the space group of the reference cell
         # in principle there should always be a virtual cell created here
         # just add the security check
-        cif_virtual_cell_filepath = model_cells_filepath + found_phase_name + '_v.cif'
+        cif_virtual_cell_filepath = model_cells_filepath + found_phase_name + '_' + str(int(label_region)) + '_v.cif'
         
         primitcellposes = AtomBuild.Store_cif_Relative_PrimitiveCellParams(
             cif_virtual_cell_filepath)
@@ -2032,7 +2182,7 @@ def Refine_StrainedRegion_SingleAtomBlock_Segmentation(
             # find the space group of the reference cell
             # in principle there should always be a virtual cell created here
             # just add the security check
-            cif_virtual_cell_filepath = model_cells_filepath + found_phase_name + '_v.cif'
+            cif_virtual_cell_filepath = model_cells_filepath + found_phase_name + '_' + str(int(label_region)) + '_v.cif'
 
             # Keep the PrimCellPos for the given label to compare with 
             # the reference ones stored in primit_cell_pos_ref
