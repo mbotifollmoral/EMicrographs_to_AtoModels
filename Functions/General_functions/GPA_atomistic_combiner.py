@@ -732,16 +732,15 @@ def Find_virtual_a_cell_c_cell_params(
     
     solutions = [list(solution) for solution in solutions]
     
-    
     # check if there is a tuple where the two elements are 
     # postiive whichm means a real soltion 
     solution_found = 0
     
     for solution in solutions:
         # ensure both checked values are real to make the comparison
-        solution[1] = 1+ solution[1]
         # convert sympy elements into numpy elements
-        if type(solution[0]) == sympy.core.numbers.Float:
+
+        if type(solution[0]) == sympy.core.numbers.Float or solution[0]==0:
             solution[0] = float(solution[0])
         elif type(solution[0]) == sympy.core.symbol.Symbol:
             # if the expression is simbolic depending on 1 of the 
@@ -751,8 +750,9 @@ def Find_virtual_a_cell_c_cell_params(
         # elif type(solution[0]) == sympy.core.mul.Mul:
             solution[0] = complex(solution[0])
             
+
         # convert sympy elements into numpy elements
-        if type(solution[1]) == sympy.core.numbers.Float:
+        if type(solution[1]) == sympy.core.numbers.Float or solution[1]==0:
             solution[1] = float(solution[1])
         elif type(solution[1]) == sympy.core.symbol.Symbol:
             # if the expression is simbolic depending on 1 of the 
@@ -768,7 +768,6 @@ def Find_virtual_a_cell_c_cell_params(
                 final_solution = solution
                 solution_found = 1
                 break
-            
             
     
     if solution_found == 1:

@@ -72,7 +72,7 @@ tooLow_FOV = 1500 #nm, is a FOV which is too
 tol=0.05 #tolerance: how different from theoretical values the previous values can be to get good output
 min_d=0.5    #minimum interplanar distance computed in the diffraction
 forbidden = True  #Include (True) or not (False) the forbidden reflections
-
+crop_setting = 'mask' # 'mask' or 'crop', FFT from the mask of the segmentation or from crop inside
 
 #%%
 '''
@@ -86,10 +86,9 @@ Template matching and generation of the relative coordinates per image over the 
 # root.withdraw()
 # dataset_system_path_name = filedialog.askdirectory(parent=root,initialdir="/",title='Folder with the images dataset')
 
-
-dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_InP_TransvNW_3\Micrographs\\'
 dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_Sn_VLS2\Micrographs\\'
-
+dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\GeQW2\Micrographs\\'
+dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_InP_TransvNW_3\Micrographs\\'
 
 # Browse the images in the folder and also calibrate
 # !!! CALIBRATION CORRECTION DONE HERE --> NO NEED TO CHANGE THE CALIBRATION OF THE IMAGES AT ANY POINT
@@ -221,7 +220,7 @@ for image_in_dataset in flat_images_in_dataset_by_pixel_size:
         for label in labels_in_crop:
             # settning 'crop' or 'mask' (for single image analysis, mask)
             image_crop_hs_signal, image_crop_array, total_pixels_crop, crop_FOV, scaled_reference_coords = HighToLowTM.Get_Atomic_Crop_from_Segmented_Crop(
-                crop_image_array_ups, label, image_in_dataset, setting = 'crop')
+                crop_image_array_ups, label, image_in_dataset, setting = crop_setting)
             
             # # After finding the square per label check whether the obtained 
             # # field of view and pixel size is enoguh to extract a reliable FFT
@@ -343,7 +342,21 @@ label_of_substrate = GPA_sp.Define_Region_as_GPA_Reference(
 
 # Pixels within the whole image in which the crop of the reference is taken, 
 # so the box of the reference itself [first_row,last_row,first_col,last_col]
-scaled_reference_coords_GPA_ref = crop_outputs_dict[str(int(label_of_GPA_ref)) + '_pixel_ref_cords']
+
+# Diverge whether the mask or crop criteria was used, and find the crop if necessary
+# as with mask the whole image is considered the reference, so just use
+# the region of what would be computed if "crop" as the reference
+if crop_setting == 'mask':
+    # re find the crop that would be used if no mask would be used but
+    # the crop within the region
+    # so fin dhte expected crop for that part
+    # and use it
+    _, _, _, _, scaled_reference_coords_GPA_ref = HighToLowTM.Get_Atomic_Crop_from_Segmented_Crop(
+        images_segmented[0], label_of_GPA_ref, image_in_dataset_whole, setting = 'crop')
+    
+else:
+    # Just use the scaled cords with is the crop itself 
+    scaled_reference_coords_GPA_ref = crop_outputs_dict[str(int(label_of_GPA_ref)) + '_pixel_ref_cords']
 
 
 # Reduce the coordinates of the square taking the reference region

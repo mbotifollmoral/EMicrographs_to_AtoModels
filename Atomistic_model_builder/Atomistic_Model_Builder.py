@@ -1819,7 +1819,7 @@ def Build_shaped_atomistic(
         supercell_cubic_transform = find_optimal_cell_shape(
             unit_cell_oriented.cell, n_unit_cells_cube, 'sc')
         
-        cube_trans_supercell = make_supercell(unit_cell_oriented,supercell_cubic_transform)
+        cube_trans_supercell = make_supercell(unit_cell_oriented, supercell_cubic_transform)
         cube_trans_supercell_dims = cube_trans_supercell.get_cell()
         show_atoms(cube_trans_supercell)
         # !!! UNITS: set the unit cell dimensions in nm
@@ -6683,7 +6683,7 @@ def Build_DeviceSupercell_Virtual_To_Distort(
         
         # Find the rotation of the reference witht he planes used for the GPA   
         final_in_surf_plane_rotation_ref = Adjust_in_surface_plane_rotation(
-            cif_cell_filepath_ref, best_cryst_spot_ref, suface_basis_choice = 'plane')        
+            cif_cell_filepath_ref, best_GPA_ref_spot_pair, suface_basis_choice = 'plane')        
         
         # Build the reference region with the shape
         Build_shaped_atomistic(
