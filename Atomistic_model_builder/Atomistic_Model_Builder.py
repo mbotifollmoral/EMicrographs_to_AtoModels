@@ -29,6 +29,8 @@ import math
 from math import gcd
 from numpy.linalg import norm, solve
 from ase.build import bulk
+import re
+from fractions import Fraction
 
 
 # !!! NEED to set the path to 
@@ -48,6 +50,190 @@ from EMicrographs_to_AtoModels.Functions.General_functions import Phase_Identifi
 '''
 Functions for atomistic modelling
 '''
+
+
+def Reformat_total_symmetry_operations_lines(
+        total_symmetry_operations_formatted):
+    '''
+    Function that goes inside uce_to_cif to reformat the list of symmetry
+    operation in total_symmetry_operations_formatted to a format that is 
+    understandable by the unit cell construction softwares, 
+    basically a format like x,y,z+1/2 is correct while x,y, 1/4+z+1/4
+    is not accepted, so the fractions need to converge
+
+    Parameters
+    ----------
+    total_symmetry_operations_formatted : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    symmetry_operations_reformatted : TYPE
+        DESCRIPTION.
+
+    '''
+    
+    symmetry_operations_reformatted = []
+    
+    
+    for sym_op in total_symmetry_operations_formatted:
+
+        sym_op_posit = sym_op[:sym_op.find("'")]
+        sym_cut = sym_op[sym_op.find("'")+1:sym_op.rfind("'")]
+        
+        
+        x_part = sym_cut[:sym_cut.find(",")]
+        y_part = sym_cut[sym_cut.find(",")+1:sym_cut.rfind(",")]
+        z_part = sym_cut[sym_cut.rfind(",")+1:]
+        
+        
+        # Let us now loop throuhg the components 
+        
+        new_parts = []
+        
+        for part in [x_part, y_part, z_part]:
+            
+            # New string with the info
+            formatted_part = ''
+            
+            part_split = part.split()
+            
+            # In case the elements are not writen in one single string
+            # so separated with blank spaces, unit them into a single continous one
+            orig_part = ''
+            for part_spl in part_split:
+                orig_part = orig_part + part_spl
+                
+            
+            # Now work with the combined string
+            # First we find the symbols x, y, z and their signs if they are 
+            
+            # x
+            x_indx = orig_part.find('x')
+            
+            # If not found, do not include this symbol
+            if x_indx == -1:
+                x_symb = ''
+            # if it is in the first position, it will be positive 
+            elif x_indx == 0:
+                x_symb = 'x'
+            # if it is but not in first position, it can be negative so
+            # retrieve the sign
+            else:
+                x_symb = orig_part[x_indx-1] + 'x'
+                
+                
+            # y
+            y_indx = orig_part.find('y')
+            
+            # If not found, do not include this symbol
+            if y_indx == -1:
+                y_symb = ''
+            # if it is in the first position, it will be positive 
+            elif y_indx == 0:
+                y_symb = 'y' if len(x_symb)==0 else '+y'
+            # if it is but not in first position, it can be negative so
+            # retrieve the sign
+            else:
+                y_symb = orig_part[y_indx-1] + 'y' 
+                
+            # z
+            z_indx = orig_part.find('z')
+            
+            # If not found, do not include this symbol
+            if z_indx == -1:
+                z_symb = ''
+            # if it is in the first position, it will be positive 
+            elif z_indx == 0:
+                z_symb = 'z' if len(x_symb)==0 and len(y_symb)==0 else '+z'
+            # if it is but not in first position, it can be negative so
+            # retrieve the sign
+            else:
+                z_symb = orig_part[z_indx-1] + 'z'      
+                
+            # Combine the symbols potentially containing letters    
+            letters_symbs = x_symb + y_symb + z_symb
+            
+            
+            # Now tackle the maths, the fractions
+            div_indxs = [m.start() for m in re.finditer("/", orig_part)]
+            
+            # go through the indices where a division / is found
+            div_symbols = []
+            numbers = []
+            
+            for div_indx in div_indxs:
+                # if the index is 1, cannot have sign, so just add the three
+                if div_indx == 1:
+                    # get format N/M
+                    div_symb = orig_part[:3]
+                    # calculate the value
+                    numerat = orig_part[0]
+                    denomint = orig_part[2]
+                    
+                    numb = int(numerat)/int(denomint)
+                    
+                    # store the values and their sign
+                    div_symbols.append(div_symb)
+                    numbers.append(numb)
+                    
+                    
+                else:
+                
+                    # get format N/M
+                    div_symb = orig_part[div_indx-2:div_indx+2]
+                    # calculate the value
+                    numerat = orig_part[div_indx-2:div_indx]
+                    denomint = orig_part[div_indx+1]
+                    
+                    numb = int(numerat)/int(denomint)
+                    
+                    # store the values and their sign
+                    div_symbols.append(div_symb)
+                    numbers.append(numb)
+                    
+                    
+            # now we have the number that sums all the fractions together
+            # check it is a value between (-1,1)
+            sum_numbers = np.sum(numbers)
+            
+            while sum_numbers >= 1:
+                sum_numbers = sum_numbers - 1
+                
+            while sum_numbers <= -1:
+                sum_numbers = sum_numbers + 1
+                
+
+            # If it is 0, just do not add anything
+            if sum_numbers == 0:
+                numbs_string = ''
+                
+            else:
+
+                # Get the irreducible fraction out of the found number
+                fraction_vals = Fraction(sum_numbers).limit_denominator()
+                
+                numerator = fraction_vals.numerator
+                denominator = fraction_vals.denominator
+                
+                numbs_string = str(int(numerator)) + "/" + str(int(denominator))
+                if int(numerator) > 0:
+                    numbs_string = "+" + numbs_string
+
+
+            # combine the letters with the maths into one single string
+            formatted_part = formatted_part + letters_symbs + numbs_string
+            
+            new_parts.append(formatted_part)
+            
+            
+        formated_symop_total = sym_op_posit  + "' "  + new_parts[0] + ", " + new_parts[1] + ", " + new_parts[2] + " '\n"
+        symmetry_operations_reformatted.append(formated_symop_total)
+            
+    
+    return symmetry_operations_reformatted
+    
+    
 
 def uce_to_cif(
         path_to_uce_unitcell, phase_name, save_filepath,
@@ -463,8 +649,13 @@ def uce_to_cif(
             # do not add anything (add empty list)
             total_symmetry_operations_formatted = symmetry_operations_formatted + additional_symops
         
+        
+    # Reformat the string structure of the symmetry operations to readable 
+    # strings with single irreducible fractions in it     
+    total_symmetry_operations_formatted = Reformat_total_symmetry_operations_lines(
+        total_symmetry_operations_formatted)
 
-             
+
     # complete the lines with the correct formatting            
                 
     hmsymb_line =  '_symmetry_space_group_name_H-M ' + "'" + hmsymbol_found + "'" + '\n'
@@ -1628,7 +1819,7 @@ def Build_shaped_atomistic(
         supercell_cubic_transform = find_optimal_cell_shape(
             unit_cell_oriented.cell, n_unit_cells_cube, 'sc')
         
-        cube_trans_supercell = make_supercell(unit_cell_oriented,supercell_cubic_transform)
+        cube_trans_supercell = make_supercell(unit_cell_oriented, supercell_cubic_transform)
         cube_trans_supercell_dims = cube_trans_supercell.get_cell()
         show_atoms(cube_trans_supercell)
         # !!! UNITS: set the unit cell dimensions in nm
@@ -6070,7 +6261,7 @@ def Wyckoff_pos_Checker(
 def Adjust_Virt_Cryst_Rotation_on_VirtualRef(
         analysed_image, best_GPA_ref_spot_pair, label_of_GPA_ref,
         label_of_region, model_cells_filepath,
-        paths_to_virt_ucells, scored_spot_pairs_found):
+        paths_to_virt_ucells, scored_spot_pairs_found, scaled_cords_spots):
     '''
     Compute the rotation that must be corrected when building the virtual
     crystal heterostructing the virtual crystal in the reference region
@@ -6107,7 +6298,7 @@ def Adjust_Virt_Cryst_Rotation_on_VirtualRef(
         DESCRIPTION.
     scored_spot_pairs_found : TYPE
         DESCRIPTION.
-
+        
     Returns
     -------
     rotation_adjustment : TYPE
@@ -6137,55 +6328,7 @@ def Adjust_Virt_Cryst_Rotation_on_VirtualRef(
 
     
     
-    # # Here check if there exists the virtual crystal of the found_phase_name
-    # # and build the cell based on this or not if it does not exist
-    
-    # cif_virtual_cell_filepath = model_cells_filepath + found_phase_name_ref + '_v.cif'
-    
-    # # Both the angle and atomistic model building needs to be done through 
-    # # either the modified cif (virtual) or the base one
-    
-    # # Find the rotation we need to induce to the default atomistic model 
-    # # to rotate it to the found orientation
-    
-    
-    # # if a virutal cell is used, so was built, use the rotation computed on
-    # #     the plane of the reference
-    # # if cif_cell_filepath ==   cif_virtual_cell_filepath:
-    # #     final_in_surf_plane_rotation = .....
-        
-    
-    # final_in_surf_plane_rotation_ref = AtomBuild.Adjust_in_surface_plane_rotation(
-    #     cif_virtual_cell_filepath, best_GPA_ref_spot_pair, suface_basis_choice = 'plane')
-    
-    
-    # plane_final_cartesian_x_ref, direction_final_cartesian_x_ref = AtomBuild.Find_plane_pointing_to_final_cartesian_x_axis(
-    #     cif_virtual_cell_filepath, best_GPA_ref_spot_pair, tolerance_diff = 0.3, suface_basis_choice = 'plane')
-    
-    
-    # unit_cell_ref = ase.io.read(cif_virtual_cell_filepath)
-    
-    # # get cell params to compute the metric tensors
-    # a, b, c, alfa, beta, gamma = unit_cell_ref.cell.cellpar()
-     
-    # direct_metric_tensor_ref = np.array([[a**2, a*b*np.cos((np.pi/180)*(gamma)), a*c*np.cos((np.pi/180)*(beta))],
-    #                                   [b*a*np.cos((np.pi/180)*(gamma)), b**2, b*c*np.cos((np.pi/180)*(alfa))],
-    #                                   [c*a*np.cos((np.pi/180)*(beta)), c*b*np.cos((np.pi/180)*(alfa)), c**2]])
-    
-    # reciprocal_metric_tensor_ref = np.linalg.inv(direct_metric_tensor_ref)
-
-    
-    # angle_x_hkl1_ref = AtomBuild.angle_between_planes(
-    #         plane_final_cartesian_x_ref, hkl1_ref, reciprocal_metric_tensor_ref)
-    
-    # angle_x_hkl2_ref = AtomBuild.angle_between_planes(
-    #         plane_final_cartesian_x_ref, hkl2_ref, reciprocal_metric_tensor_ref)
-    
-    
-    # plane_final_cartesian_x, direction_final_cartesian_x = Find_plane_pointing_to_final_cartesian_x_axis(
-    #     cell_filepath, scored_spot_pair, tolerance_diff = 0.3, suface_basis_choice = 'plane')
-
-    
+    # Info from the specific region checked, where virtual cell is found
     image_crop_hs_signal_lab = crop_outputs_dict[str(label_of_region) + '_hs_signal']
     crop_list_refined_cryst_spots_lab = crop_outputs_dict[str(label_of_region) + '_list_refined_cryst_spots']
 
@@ -6196,77 +6339,79 @@ def Adjust_Virt_Cryst_Rotation_on_VirtualRef(
     
     # this will only be done with the phases that needed a virtual one 
     
-    for cell_path, scored_spot_pair in zip(
-            paths_to_virt_ucells, scored_spot_pairs_found):
+    for cell_path, scored_spot_pair, scaled_cord_spot in zip(
+            paths_to_virt_ucells, scored_spot_pairs_found, scaled_cords_spots):
         
-        if found_phase_name_lab in cell_path:            
-            
-            hkl1_lab = scored_spot_pair.hkl1_reference
-            hkl2_lab = scored_spot_pair.hkl2_reference
-            hkl1_to_x_exp_lab = scored_spot_pair.spot1_angle_to_x
-            hkl2_to_x_exp_lab = scored_spot_pair.spot2_angle_to_x
-            found_scored_spot_pair = scored_spot_pair
-            cif_cell_filepath_lab = cell_path
-            
-       
+        # this will only be done with the phases that needed a virtual one
+        # so to just filter the process for phases that have the virutal 
+        # and come from the label defined by label_of_region
+        if '_' + str(int(label_of_region)) + '_v.cif' in cell_path:
+        
+            # if the specific phase name is the cell path string
+            if found_phase_name_lab in cell_path:            
+                
+                hkl1_lab = scored_spot_pair.hkl1_reference
+                hkl2_lab = scored_spot_pair.hkl2_reference
+                hkl1_to_x_exp_lab = scored_spot_pair.spot1_angle_to_x
+                hkl2_to_x_exp_lab = scored_spot_pair.spot2_angle_to_x
+                found_scored_spot_pair = scored_spot_pair
+                cif_cell_filepath_lab = cell_path
+                scaled_cord_1 = scaled_cord_spot[0]
+                scaled_cord_2 = scaled_cord_spot[1]
+                break
     
-    # final_in_surf_plane_rotation_lab = AtomBuild.Adjust_in_surface_plane_rotation(
-    #     cif_cell_filepath_lab, found_scored_spot_pair, suface_basis_choice = 'plane')
-    
-    
-    # plane_final_cartesian_x_lab, direction_final_cartesian_x_lab = AtomBuild.Find_plane_pointing_to_final_cartesian_x_axis(
-    #     cif_cell_filepath_lab, found_scored_spot_pair, tolerance_diff = 0.3, suface_basis_choice = 'plane')
-    
-       
-    # # ge tthe cell from the lab
-    
-    # unit_cell_lab = ase.io.read(cif_cell_filepath_lab)
-    
-    # # get cell params to compute the metric tensors
-    # a, b, c, alfa, beta, gamma = unit_cell_lab.cell.cellpar()
-     
-    # direct_metric_tensor_lab = np.array([[a**2, a*b*np.cos((np.pi/180)*(gamma)), a*c*np.cos((np.pi/180)*(beta))],
-    #                                   [b*a*np.cos((np.pi/180)*(gamma)), b**2, b*c*np.cos((np.pi/180)*(alfa))],
-    #                                   [c*a*np.cos((np.pi/180)*(beta)), c*b*np.cos((np.pi/180)*(alfa)), c**2]])
-    
-    # reciprocal_metric_tensor_lab = np.linalg.inv(direct_metric_tensor_lab)
-    
-    
-    # angle_x_hkl1_lab = AtomBuild.angle_between_planes(
-    #         plane_final_cartesian_x_lab, hkl1_lab, reciprocal_metric_tensor_lab)
-    
-    # angle_x_hkl2_lab = AtomBuild.angle_between_planes(
-    #         plane_final_cartesian_x_lab, hkl2_lab, reciprocal_metric_tensor_lab)
-    
-    
-    
-    
-    # final_in_surf_plane_rotation_ref
-    # final_in_surf_plane_rotation_lab
-    # also usable for the check
+    # If only 1 from label is found within the mask around the two reference spots
+    if scaled_cord_1.all() == scaled_cord_2.all():
+    # if scaled_cord_1[0] == scaled_cord_2[0] and scaled_cord_1[1] == scaled_cord_2[1]:
+        
+        
+        # rotation_adjustment_ label of spot in ref  _ label of spot in region
+        rotation_adjustment_1_1 = - (hkl1_to_x_exp_lab - hkl1_to_x_exp_ref)
+
+        rotation_adjustment_1_2 = - (hkl2_to_x_exp_lab - hkl1_to_x_exp_ref)
+        
+        rotation_adjustment_2_1 = - (hkl1_to_x_exp_lab - hkl2_to_x_exp_ref)
+        
+        rotation_adjustment_2_2 = - (hkl2_to_x_exp_lab - hkl2_to_x_exp_ref)
+        
+        
+        # the rotation adjustment is directly the smallest angle in abs value
+        possible_rots = np.array([rotation_adjustment_1_1, rotation_adjustment_1_2,
+                                  rotation_adjustment_2_1, rotation_adjustment_2_2])
+        
+        rotation_adjustment = possible_rots[np.argmin(np.abs(possible_rots))]
+        
+        return rotation_adjustment
     
     
-    # also 
+    # or if two spots are found, 1 within each mask
+    else:
     
-    # hkl1_to_x_exp_ref
-    # hkl2_to_x_exp_ref
+        # rotation_adjustment_ label of spot in ref  _ label of spot in region
+        
+        
+        # first find the plane next to the reference spot 1
+        rotation_adjustment_1_1 = - (hkl1_to_x_exp_lab - hkl1_to_x_exp_ref)
+        rotation_adjustment_1_2 = - (hkl2_to_x_exp_lab - hkl1_to_x_exp_ref)
+        
+        possible_rots_1 = np.array([rotation_adjustment_1_1, rotation_adjustment_1_2])
+        rotation_adjustment_1 = possible_rots_1[np.argmin(np.abs(possible_rots_1))]
+        
+        
+        rotation_adjustment_2_1 = - (hkl1_to_x_exp_lab - hkl2_to_x_exp_ref)
+        rotation_adjustment_2_2 = - (hkl2_to_x_exp_lab - hkl2_to_x_exp_ref)
+
+        possible_rots_2 = np.array([rotation_adjustment_2_1, rotation_adjustment_2_2])
+        rotation_adjustment_2 = possible_rots_2[np.argmin(np.abs(possible_rots_2))]
     
-    # hkl1_to_x_exp_lab
-    # hkl2_to_x_exp_lab
-    
-    
+        # as the two adjustments should be very close together, just average 
+        # them to get the final value
+        rotation_adjustment = (rotation_adjustment_1 + rotation_adjustment_2)/2
     
     # in princicple the angle to correct should be just
     # the difference bwteen angles to x of both planes, whihc should coincide
     
-    rotation_adjustment1 = - (hkl1_to_x_exp_lab - hkl1_to_x_exp_ref )
-    
-    # and should coincide wiht
-    
-    rotation_adjustment2 = - (hkl2_to_x_exp_lab - hkl2_to_x_exp_ref)
-    
-    rotation_adjustment = (rotation_adjustment1 + rotation_adjustment2)/2
-    
+
     return rotation_adjustment
 
 
@@ -6376,6 +6521,10 @@ def Check_Same_SpaceGroup_Orientation(
         
             cif_lab_cell_filepath = cell_filepath
             
+            if type(scoredspotpair) == type(None):
+                equally_oriented = False
+                return equally_oriented           
+            
             hkl1_lab = scoredspotpair.hkl1_reference
             hkl2_lab = scoredspotpair.hkl2_reference
             
@@ -6407,8 +6556,30 @@ def Check_Same_SpaceGroup_Orientation(
                     
                     # then they are in "almost" same spatial orientation
                     equally_oriented = True
+                    return equally_oriented
     
-        
+    
+    # previous condition is the best as gets that both planes are the exact
+    # same ones found, but next conditions check if only one is found in 
+    # same hkl, as it would be 
+    if spacegroup_cell_lab == spacegroup_cell_ref:
+        if zone_axis_found_lab in ZA_ref_family:
+            if hkl1_lab in hkl1_ref_family:
+
+                # then they are in "almost" same spatial orientation
+                equally_oriented = True
+                return equally_oriented
+                
+    # and for plane 2        
+    if spacegroup_cell_lab == spacegroup_cell_ref:
+        if zone_axis_found_lab in ZA_ref_family:
+            if hkl2_lab in hkl2_ref_family:
+                
+                # then they are in "almost" same spatial orientation
+                equally_oriented = True
+                return equally_oriented
+    
+    
     return equally_oriented
     
 
@@ -6417,7 +6588,7 @@ def Build_DeviceSupercell_Virtual_To_Distort(
         analysed_image, model_cells_filepath, 
         z_thickness_model, conts_vertx_per_region,
         label_of_GPA_ref, best_GPA_ref_spot_pair, 
-        paths_to_virt_ucells, scored_spot_pairs_found):
+        paths_to_virt_ucells, scored_spot_pairs_found, scaled_cords_spots):
     '''
     Main function building the atomistic model supercell for the whole device
     being this one the function that needs to be called when building the
@@ -6455,7 +6626,7 @@ def Build_DeviceSupercell_Virtual_To_Distort(
     scored_spot_pairs_found : list of scored_spot_pairs paired with 
                             paths_to_virt_ucells with the spots found within 
                             the mask drawn around the GPA mask
-
+    scaled_cords_spots: list of pair of scaled coordinates of the spots found
     Returns
     -------
     atom_models_filepath : path to cells built
@@ -6476,11 +6647,65 @@ def Build_DeviceSupercell_Virtual_To_Distort(
     if path_atom_models == False:
         os.mkdir(atom_models_filepath)
     
-    # !!! STEP 1: Check the orientation for all the crystals and check if
-    # they are same, and store the regions where they coincide
-    
     # Information from all the crops done to the image
     crop_outputs_dict = analysed_image.Crop_outputs
+
+    # SECURITY CHECK: If no other crystal is found except the reference one, 
+    # just build the device based on the only crystal found and end function
+    if len(paths_to_virt_ucells) == 0:
+        
+        labels_equally_oriented_as_ref = [label_of_GPA_ref]
+        
+        image_crop_hs_signal_ref = crop_outputs_dict[str(label_of_GPA_ref) + '_hs_signal']
+        crop_list_refined_cryst_spots_ref = crop_outputs_dict[str(label_of_GPA_ref) + '_list_refined_cryst_spots']
+        
+        # most likely crystal found
+        best_cryst_spot_ref = crop_list_refined_cryst_spots_ref[0]
+        zone_axis_found_ref =  best_cryst_spot_ref.ZA
+        hkl1_reference_ref = best_GPA_ref_spot_pair.hkl1_reference
+        hkl1_angle_to_x_ref = best_GPA_ref_spot_pair.spot1_angle_to_x
+        hkl2_reference_ref = best_GPA_ref_spot_pair.hkl2_reference
+        hkl2_angle_to_x_ref = best_GPA_ref_spot_pair.spot2_angle_to_x
+        found_phase_name_ref = best_cryst_spot_ref.phase_name
+        
+        
+        # For the reference crystal we use the virtual crystal built independently
+        
+        cif_virtual_cell_filepath_ref = model_cells_filepath + found_phase_name_ref + '_' + str(int(label_of_GPA_ref)) + '_v.cif'
+        
+        cif_virtual_cell_filepath_Path_ref = Path(cif_virtual_cell_filepath_ref)
+        cif_virtual_file_already_created_ref = cif_virtual_cell_filepath_Path_ref.is_file()
+        
+        if cif_virtual_file_already_created_ref == True:
+            cif_cell_filepath_ref = cif_virtual_cell_filepath_ref
+        else:
+            cif_cell_filepath_ref = model_cells_filepath + found_phase_name_ref + '.cif'        
+        
+        # Find the rotation of the reference witht he planes used for the GPA   
+        final_in_surf_plane_rotation_ref = Adjust_in_surface_plane_rotation(
+            cif_cell_filepath_ref, best_GPA_ref_spot_pair, suface_basis_choice = 'plane')        
+        
+        # Build the reference region with the shape
+        Build_shaped_atomistic(
+            cif_cell_filepath_ref, zone_axis_found_ref, final_in_surf_plane_rotation_ref, 
+            z_thickness_model, conts_vertx_per_region, label_of_GPA_ref, 
+            atom_models_filepath, adjust_y_bottomleft = True)
+    
+        # if the Unify_Contour_Vectors approach does not work, then :
+        #     apply the contours with the all the labels
+        #     need to modify the Build_shaped_atomistic
+        #     to check the contours of more than one label
+     
+        # combine the cells altoghether to form the bigger single atomistic model   
+        # to have the global file in the folder and use it for the distortion
+        Combine_xyz_supercells(atom_models_filepath)        
+        
+        
+        return atom_models_filepath, labels_equally_oriented_as_ref
+
+
+    # !!! STEP 1: Check the orientation for all the crystals and check if
+    # they are same, and store the regions where they coincide
     
     # store these regions (labels) where the crystals are equally oriented as 
     # the crystal of the reference, same space group
@@ -6510,6 +6735,10 @@ def Build_DeviceSupercell_Virtual_To_Distort(
             if equally_oriented_lab == True:
                 labels_equally_oriented_as_ref.append(label_segm_region)
             
+        
+    # add the label of the reference as well to merge the contours
+    labels_equally_oriented_as_ref.append(label_of_GPA_ref)
+        
     # !!! STEP 2: Now split the methodology in 
     # 1) Building same crystal block for these oriented likewise, and if not likewise
     # just with the base crystal information or virtual but not oriented
@@ -6520,9 +6749,7 @@ def Build_DeviceSupercell_Virtual_To_Distort(
     # 1)    
     # for those regions where the same crystal space and orientation is found
     # build just one single block out of it   
-    if len(labels_equally_oriented_as_ref) != 0:
-        # add the label of the reference as well to merge the contours
-        labels_equally_oriented_as_ref.append(label_of_GPA_ref)
+    if len(labels_equally_oriented_as_ref) > 1:
         
         # unite the contours for the equally oriented labels
         conts_vertx_per_region_unified = Segment.Unify_Contour_Vectors(
@@ -6560,7 +6787,7 @@ def Build_DeviceSupercell_Virtual_To_Distort(
                     # Here check if there exists the virtual crystal of the found_phase_name
                     # and build the cell based on this or not if it does not exist
                     
-                    cif_virtual_cell_filepath = model_cells_filepath + found_phase_name + '_v.cif'
+                    cif_virtual_cell_filepath = model_cells_filepath + found_phase_name + '_' + str(int(label_segm_region)) + '_v.cif'
                     
                     cif_virtual_cell_filepath_Path = Path(cif_virtual_cell_filepath)
                     cif_virtual_file_already_created = cif_virtual_cell_filepath_Path.is_file()
@@ -6593,7 +6820,7 @@ def Build_DeviceSupercell_Virtual_To_Distort(
                             analysed_image, best_GPA_ref_spot_pair, label_of_GPA_ref, 
                             label_segm_region, 
                             model_cells_filepath, paths_to_virt_ucells, 
-                            scored_spot_pairs_found)
+                            scored_spot_pairs_found, scaled_cords_spots)
                         
                         # adjust the rotation of the virtual crystal
                         final_in_surf_plane_rotation = final_in_surf_plane_rotation + rotation_adjustment
@@ -6642,18 +6869,18 @@ def Build_DeviceSupercell_Virtual_To_Distort(
         # most likely crystal found
         best_cryst_spot_ref = crop_list_refined_cryst_spots_ref[0]
         zone_axis_found_ref =  best_cryst_spot_ref.ZA
-        scored_spot_pair_ref = best_cryst_spot_ref.spot_pairs_obj[0]
-        hkl1_reference_ref = scored_spot_pair_ref.hkl1_reference
-        hkl1_angle_to_x_ref = scored_spot_pair_ref.spot1_angle_to_x
-        hkl2_reference_ref = scored_spot_pair_ref.hkl2_reference
-        hkl2_angle_to_x_ref = scored_spot_pair_ref.spot2_angle_to_x
+        
+        hkl1_reference_ref = best_GPA_ref_spot_pair.hkl1_reference
+        hkl1_angle_to_x_ref = best_GPA_ref_spot_pair.spot1_angle_to_x
+        hkl2_reference_ref = best_GPA_ref_spot_pair.hkl2_reference
+        hkl2_angle_to_x_ref = best_GPA_ref_spot_pair.spot2_angle_to_x
         found_phase_name_ref = best_cryst_spot_ref.phase_name
         
         
         # Here check if there exists the virtual crystal of the found_phase_name
         # and build the cell based on this or not if it does not exist
         
-        cif_virtual_cell_filepath_ref = model_cells_filepath + found_phase_name_ref + '_v.cif'
+        cif_virtual_cell_filepath_ref = model_cells_filepath + found_phase_name_ref + '_' + str(int(label_of_GPA_ref)) + '_v.cif'
         
         cif_virtual_cell_filepath_Path_ref = Path(cif_virtual_cell_filepath_ref)
         cif_virtual_file_already_created_ref = cif_virtual_cell_filepath_Path_ref.is_file()
@@ -6675,7 +6902,7 @@ def Build_DeviceSupercell_Virtual_To_Distort(
         # if cif_cell_filepath ==   cif_virtual_cell_filepath:
         #     final_in_surf_plane_rotation = .....
         final_in_surf_plane_rotation_ref = Adjust_in_surface_plane_rotation(
-            cif_cell_filepath_ref, scored_spot_pair_ref, suface_basis_choice = 'plane')
+            cif_cell_filepath_ref, best_GPA_ref_spot_pair, suface_basis_choice = 'plane')
         
         # As it is the reference crystal we do not need to apply any correction
         # to the computed rotation                 
@@ -6735,15 +6962,19 @@ def Build_DeviceSupercell_Virtual_To_Distort(
                 # Here check if there exists the virtual crystal of the found_phase_name
                 # and build the cell based on this or not if it does not exist
                 
-                cif_virtual_cell_filepath = model_cells_filepath + found_phase_name + '_v.cif'
+                cif_virtual_cell_filepath = model_cells_filepath + found_phase_name + '_' + str(int(label_segm_region)) + '_v.cif'
                 
                 cif_virtual_cell_filepath_Path = Path(cif_virtual_cell_filepath)
                 cif_virtual_file_already_created = cif_virtual_cell_filepath_Path.is_file()
-                
+                print(cif_virtual_cell_filepath)
+                print(cif_virtual_file_already_created)
                 if cif_virtual_file_already_created == True:
                     cif_cell_filepath = cif_virtual_cell_filepath
                 else:
                     cif_cell_filepath = model_cells_filepath + found_phase_name + '.cif'
+                    
+                print(cif_cell_filepath)
+                
                 
                 # Both the angle and atomistic model building needs to be done through 
                 # either the modified cif (virtual) or the base one
@@ -6762,13 +6993,19 @@ def Build_DeviceSupercell_Virtual_To_Distort(
                 # if there exists a virtual cell, build the cell based on it
                 # if not build based on base cell
                 # for all virtual crystals that are not the reference region ones                
+                print(cif_cell_filepath)
+                print(label_segm_region)
+                print(label_of_GPA_ref)
+                
                 if cif_cell_filepath == cif_virtual_cell_filepath and label_segm_region != label_of_GPA_ref:
                     
+                    
+                    print(cif_cell_filepath)
                     rotation_adjustment = Adjust_Virt_Cryst_Rotation_on_VirtualRef(
                         analysed_image, best_GPA_ref_spot_pair, label_of_GPA_ref, 
                         label_segm_region, 
                         model_cells_filepath, paths_to_virt_ucells, 
-                        scored_spot_pairs_found)
+                        scored_spot_pairs_found, scaled_cords_spots)
                     
                     # adjust the rotation of the virtual crystal
                     final_in_surf_plane_rotation = final_in_surf_plane_rotation + rotation_adjustment
