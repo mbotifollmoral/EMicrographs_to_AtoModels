@@ -474,6 +474,12 @@ mask_size, GPA_eff_resolution = GPA_sp.Define_GPA_Mask_Size(
     image_array_whole, FFT_calibration_whole, smallest_feature = GPA_resolution)
 
 
+# Wiener filter the image for GPA smoothing
+GPA_Wiener_Filter = True
+if GPA_Wiener_Filter == True:
+    image_array_whole = GPA_AtoMod.wiener_filt(image_array_whole, power=1)
+
+
 # Compute GPA and store the images
 exx, eyy, exy, eyx, rot, shear, Dispx, Dispy, ref_spot1, ref_spot2 = GPA_AtoMod.GPA_full_AtomisticModel(
     image_array_whole, pixel_size_whole, spot_1_coords, spot_2_coords, 
@@ -578,7 +584,6 @@ a_v_cell, b_v_cell, c_v_cell = GPA_AtoMod.Find_virtual_a_cell_c_cell_params(
 path_to_v_unitcell = GPA_AtoMod.Build_virtual_crystal_cif(
     model_cells_filepath, found_phase_name_GPA_ref, label_of_GPA_ref,
     a_v_cell, b_v_cell, c_v_cell)
-
 
 
 # ONLY USE IF WANT TO CREATE A SUPERCELL WITH THE PARAMETERS AS FOUND
