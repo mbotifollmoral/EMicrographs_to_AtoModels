@@ -3858,15 +3858,16 @@ def Find_direction_paralel_to_plane(
 
     '''
     direction_paralel = np.dot(plane, reciprocal_metric_tensor)
-    
-    direction_paralel_smallest = np.min(np.abs(direction_paralel))
-    
-    val_to_mult = 1/direction_paralel_smallest
-    direction_paralel = direction_paralel*val_to_mult
-    
+    # Detect minimum value, except 0, we do not want the 0 as would lead to 
+    # infinity , numerical unstability
+    # Only reduce the values divigin by minimum if there are some values 
+    # smaller than 1 except the 0s
+    if np.abs(direction_paralel[0]) < 1 or np.abs(direction_paralel[1]) < 1 or np.abs(direction_paralel[2]) < 1:
+        direction_paralel_smallest = np.min(np.abs(direction_paralel[direction_paralel != 0]))
+        val_to_mult = 1/direction_paralel_smallest
+        direction_paralel = direction_paralel*val_to_mult
 
     direction_paralel_int = np.round(direction_paralel)
-    
     diff = np.abs(direction_paralel - direction_paralel_int)
 
     if np.sum(diff) > tolerance_diff:
@@ -3878,11 +3879,11 @@ def Find_direction_paralel_to_plane(
         gcd_2 = math.gcd(int(direction_paralel_int[1]), int(direction_paralel_int[2]))
         gcd_3 = math.gcd(int(direction_paralel_int[0]), int(direction_paralel_int[2]))
         
-        gcds = np.array([gcd_1, gcd_2, gcd_3])
+        gcds = np.abs(np.array([gcd_1, gcd_2, gcd_3]))
                 
         gcd = np.min(gcds[gcds != 0])
         
-        direction_paralel_int = direction_paralel_int/gcd
+        direction_paralel_int = direction_paralel_int/np.abs(gcd)
 
         return [int(direction_paralel_int[0]), int(direction_paralel_int[1]), int(direction_paralel_int[2])]
     
@@ -6966,14 +6967,10 @@ def Build_DeviceSupercell_Virtual_To_Distort(
                 
                 cif_virtual_cell_filepath_Path = Path(cif_virtual_cell_filepath)
                 cif_virtual_file_already_created = cif_virtual_cell_filepath_Path.is_file()
-                print(cif_virtual_cell_filepath)
-                print(cif_virtual_file_already_created)
                 if cif_virtual_file_already_created == True:
                     cif_cell_filepath = cif_virtual_cell_filepath
                 else:
                     cif_cell_filepath = model_cells_filepath + found_phase_name + '.cif'
-                    
-                print(cif_cell_filepath)
                 
                 
                 # Both the angle and atomistic model building needs to be done through 
@@ -6993,14 +6990,9 @@ def Build_DeviceSupercell_Virtual_To_Distort(
                 # if there exists a virtual cell, build the cell based on it
                 # if not build based on base cell
                 # for all virtual crystals that are not the reference region ones                
-                print(cif_cell_filepath)
-                print(label_segm_region)
-                print(label_of_GPA_ref)
                 
                 if cif_cell_filepath == cif_virtual_cell_filepath and label_segm_region != label_of_GPA_ref:
                     
-                    
-                    print(cif_cell_filepath)
                     rotation_adjustment = Adjust_Virt_Cryst_Rotation_on_VirtualRef(
                         analysed_image, best_GPA_ref_spot_pair, label_of_GPA_ref, 
                         label_segm_region, 
