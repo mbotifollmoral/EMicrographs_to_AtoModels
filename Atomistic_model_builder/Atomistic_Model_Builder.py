@@ -5786,8 +5786,6 @@ def Find_plane_pointing_to_final_cartesian_x_axis(
     plane_final_cartesian_x = planes_in_x_int[np.argmin(np.abs(np.asarray([angle_to_0_aft_final_rot_plane_1x, angle_to_0_aft_final_rot_plane_2x])))]
     
     # find also the direction in case it is necessary
-    print('plane_final_cartesian_x')
-    print(plane_final_cartesian_x)
     direction_final_cartesian_x = Find_direction_paralel_to_plane(
         plane_final_cartesian_x, reciprocal_metric_tensor, tolerance_diff = tolerance_diff)
     
