@@ -1022,6 +1022,10 @@ def EELS_Chemical_FullProcessing(
 
 # micrographs_path = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\GeQW2\Micrographs\\'
 
+# EELS_Quant_available = Available_EELS_data_Checker(
+#     micrographs_path)
+
+
 # images_in_dataset_list, pixel_sizes = HighToLowTM.Browse_Dataset_Images_and_Recalibrate(
 #     micrographs_path, real_calibration_factor)
 

@@ -2617,120 +2617,93 @@ def Refine_StrainedRegion_MultiAtomBlock_Segmentation(
 
 
 
+def Displace_Atoms_Portion(
+        atomodel_filepath, displacement_box, 
+        displacement_vector, rotation_degrees):
+    '''
+    Displace a portion of the atoms within an atomistic model a given quantity
+    defined by the displacement_vector
 
+    Parameters
+    ----------
+    atomodel_filepath : TYPE
+        DESCRIPTION.
+    displacement_box : region within the region which will be displaced
+    displacement_vector :  displacement_vector 3 vector components in angstroms each, angstroms 
+        displacemed in every direction, [x,y,z], z should be 0 normally
+    rotation_degrees: rotation in degrees
+    Returns
+    -------
+    model_displaced_path. path to displaced filepath
 
-
-'''
-
-fft of the whle image
-to locate points
-
-
-select automatticlaly points 
-but with possibility to change point if wanted
-just for the trials
-
-
-make the conversion and generation of a new atomic phase that
-gets the differences in distances as pointed by the computed planes
-modificatoin of the cif file that is built by changing the
-cell parameters
-something easy to do
-
-more dificult is to generalise the changes experienced in the plane distances with 
-any possible phase  to any change cell space group
-
-
-what distances to modify, make only in plane differences in the distances
-or what?
-
-
-build the model based on this distances 
-whatm odels to modify only the one in the region taken as reference 
-only the regiontakes as reference is considered 
-
-then apply strain
-
-then rebuild the model based on the new distances
-and positions
-of the segmened region and cut based on this with special awareness on
-the elements used
-and what should be cut and wht not
-
-
-when wanting to move the elements back to their original interface 
-definition then the to distinguish which elements to move, whihc ones correspod
-to one regionand to another, add a label to them, for iinstance, in the deby weller
-coefficient, assign a specific one to each Material NOT element, so then when
-we want to cut the segmented region as originally, and with the expansion of the whole region
-that would overlapp regions then this way we can cut it cutting this expansion
-
-
-
-
-
-1st approximatin 
-
-selecting a small region of one of the segments, so just one material
-
-the region must be selected manually as it is something one must choose to
-select that specific region of interest for instance a stacking fault
-
-
-where you build the base virutal crystal from is not important as soon
-as the informaton of where is kept, it is comming from a region of the image
-wheere the displacement is known
-as the region taken as reference will define thevirtual crstal and then all
-the displacement map is modified depending on where the reference is taken
-
-
-
-
-
-
-2nd approximation 
-
-the region selected contatnis two materials and then two virtual crystals need to
-be computed at the same time
-actually it is two materials forming two virtual crystals that rae differetn because of 
-their difference in composition but should be with same cell parameters as
-they should be derived from the same set of g1 and g2 vectors
-
-perform and apply the cell variation on both materials
-
-
-
-
-
-should be possible to cmpute the virtual crytal of both regions or all the regions
-with the same infrmaotin from g1 and g2 from onlny 1 computation of the gpa:
-    with just one given reference:
-as then the displacement computed is from that same virtual crystal in both
-positions with the same g vectors so same distances but differetnc compoiusitons
-so as it computes the DISPLACEMENTS of the atoms and NOT THE POSITIONS
-then building from same informatino should be enough
-because it is the displacements what is being tracked and what is made converge
-with the displacement field
-
-
-
-3r approx
-
-same as 2nd on full image
-
-
-
-'''
-
-
-
-
-
-
-
-
-
-
+    '''
+    
+    rotation_matrix = np.array([[np.cos((np.pi/180)*rotation_degrees), -np.sin((np.pi/180)*rotation_degrees)],
+                                [np.sin((np.pi/180)*rotation_degrees), np.cos((np.pi/180)*rotation_degrees)]])
+    
+    
+    
+    global_atom_list, _ = read_xyz(
+        atomodel_filepath) 
+    # atoms to be modified
+    # atoms_list, _ =  GPA_AtoMod.read_xyz(
+    #     atomodel_filepath, BOX = displacement_box) 
+    
+    atoms_list = []
+    
+    all_poses = np.array(list(map(lambda a: [a.x, a.y, a.z], global_atom_list)))
+    
+    for atom, pose in zip(
+            global_atom_list, all_poses):
+        
+        inbox = In_Box(pose[0], pose[1], displacement_box)
+        if inbox == True:
+            atoms_list.append(atom)
+    
+    
+    # positions
+    positions_atoms = np.array(list(map(lambda a: [a.x, a.y, a.z], atoms_list)))
+    x_disp, y_disp, z_disp = displacement_vector
+    
+    new_poses = np.copy(positions_atoms)
+    
+    new_poses[:,0] = new_poses[:,0] + x_disp
+    new_poses[:,1] = new_poses[:,1] + y_disp
+    new_poses[:,2] = new_poses[:,2] + z_disp
+    
+    
+    new_atoms_list = []
+    
+    for global_atom in global_atom_list:
+        
+        if global_atom in atoms_list:
+            new_x = new_poses[atoms_list.index(global_atom),0]
+            new_y = new_poses[atoms_list.index(global_atom),1]
+            new_z = new_poses[atoms_list.index(global_atom),2]
+            
+            new_x, new_y = np.dot(rotation_matrix, np.array([new_x, new_y]))
+            
+            Z = global_atom.Z
+            occ = global_atom.occ
+            DW = global_atom.DW
+            
+                    
+            atom_new = Atom(
+                Z, new_x, new_y, new_z, occ, DW)
+            
+            new_atoms_list.append(atom_new)
+        else:
+            new_atoms_list.append(global_atom)
+        
+    
+    # build the list of atoms 
+    model_displaced_path =  atomodel_filepath[:atomodel_filepath.find('.xyz')] + '_displ.xyz'    
+    
+    save_xyf(
+        new_atoms_list, model_displaced_path, save_occsDW = False)
+    
+    
+    return model_displaced_path
 
 
 

@@ -51,6 +51,8 @@ from EMicrographs_to_AtoModels.Atomistic_model_builder import Atomistic_Model_Bu
 from EMicrographs_to_AtoModels.Functions.General_functions import GPA_atomistic_combiner as GPA_AtoMod
 from EMicrographs_to_AtoModels.Functions.General_functions import GPA_specific as GPA_sp
 
+from EMicrographs_to_AtoModels.EELS_QuantMaps import EELS_QuantMaps_TemplMatch_Profile as EELSQuantAtoModel
+
 
 #%%
 '''
@@ -87,8 +89,8 @@ Template matching and generation of the relative coordinates per image over the 
 # dataset_system_path_name = filedialog.askdirectory(parent=root,initialdir="/",title='Folder with the images dataset')
 
 dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_Sn_VLS2\Micrographs\\'
-dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\GeQW2\Micrographs\\'
 dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_InP_TransvNW_3\Micrographs\\'
+dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\GeQW2\Micrographs\\'
 
 # Browse the images in the folder and also calibrate
 # !!! CALIBRATION CORRECTION DONE HERE --> NO NEED TO CHANGE THE CALIBRATION OF THE IMAGES AT ANY POINT
@@ -705,34 +707,91 @@ path_global_strained_purged = GPA_AtoMod.Distort_AtoModel_Region(
 Post-strain chemistry/segmentation refinement
 '''
 
-# Make the difference to how the refinement is done depending on 
-# the equally oriented crystals found
-if labels_equally_oriented_as_ref > 1:
-    # If many crystals are found with the same orientation, use the 
-    # path_region_to_strained_purged to the global strained purged model
-    atomregmodel_path_final = GPA_AtoMod.Refine_StrainedRegion_SingleAtomBlock_Segmentation(
-        analysed_image_only, model_cells_filepath, 
-        path_global_strained_purged, label_of_GPA_ref, 
-        labels_equally_oriented_as_ref, conts_vertx_per_region, 
-        paths_to_virt_ucells, collapse_occupancies = True)
+# Here check if the EELS data is available, to then use it as the chemistry check
+# or use the segmentation instead in case it is not there
+EELS_Quant_available = EELSQuantAtoModel.Available_EELS_data_Checker(
+    dataset_system_path_name)
+
+# If EELS data is available, then use the EELS maps to generate the atomodel
+if EELS_Quant_available == True:
+    # Find the EELS template-query relation to fit the quant maps inside
+    # the main image analysed
+    EELS_query_hs_sign, EELS_template_hs_sign, coordinates_template_EELS, EELS_scale_factor, EELS_setting = EELSQuantAtoModel.Find_EELS_survey_in_micrograph(
+        dataset_system_path_name, image_in_dataset_whole)
     
+    # Perform the actual substitution of the atoms by the elememts in
+    # the quantification maps, in this function directly filtering and inputting
+    # the original box withuot resizing (making it bigger), so no need to 
+    # crop it after the chemical substitution
+    noncolaps_occ_eelsed_path, colaps_occ_eelsed_path = EELSQuantAtoModel.EELS_Chemical_FullProcessing(
+        dataset_system_path_name, Box_strain_pixels, image_in_dataset_whole, 
+        EELS_query_hs_sign, EELS_template_hs_sign, coordinates_template_EELS, 
+        EELS_setting, path_global_strained_purged)
+
 else:
-    # labels_equally_oriented_as_ref == 1, so only the reference region:
-    # if the crystals are in different orientations and belong to different
-    # space groups, then merge the multiple atomic models obtained from the
-    # different labels and their distortion
-    atomregmodel_path_final = GPA_AtoMod.Refine_StrainedRegion_MultiAtomBlock_Segmentation(
-        atom_models_filepath, conts_vertx_per_region)
-    
+    # if no chemical information is available, then use the segmentation
+    # and how the elements were distributed from there 
+
+    # Make the difference to how the refinement is done depending on 
+    # the equally oriented crystals found
+    if len(labels_equally_oriented_as_ref) > 1:
+        # If many crystals are found with the same orientation, use the 
+        # path_region_to_strained_purged to the global strained purged model
+        atomregmodel_path_final = GPA_AtoMod.Refine_StrainedRegion_SingleAtomBlock_Segmentation(
+            analysed_image_only, model_cells_filepath, 
+            path_global_strained_purged, label_of_GPA_ref, 
+            labels_equally_oriented_as_ref, conts_vertx_per_region, 
+            paths_to_virt_ucells, collapse_occupancies = True)
+        
+    else:
+        # labels_equally_oriented_as_ref == 1, so only the reference region:
+        # if the crystals are in different orientations and belong to different
+        # space groups, then merge the multiple atomic models obtained from the
+        # different labels and their distortion
+        atomregmodel_path_final = GPA_AtoMod.Refine_StrainedRegion_MultiAtomBlock_Segmentation(
+            atom_models_filepath, conts_vertx_per_region)
+        
+        
+    # Cut the final model to the real size of the box that was initially defined
+    # by the Box_strain_pixels which was increased to make sure the distortions
+    # still placed atoms inside the region of interest which is now returned
+    path_finalcut_strainedmodel = GPA_AtoMod.Original_BoxSize_StrainedModel(
+        B_strain_aug_fact, Box_strain_pixels, pixel_size_whole, 
+        total_pixels_whole, atomregmodel_path_final)
+
+
+#%%
+'''
+Manual atom displacement
 
 
 
-# Cut the final model to the real size of the box that was initially defined
-# by the Box_strain_pixels which was increased to make sure the distortions
-# still placed atoms inside the region of interest which is now returned
-path_finalcut_strainedmodel = GPA_AtoMod.Original_BoxSize_StrainedModel(
-    B_strain_aug_fact, Box_strain_pixels, pixel_size_whole, 
-    total_pixels_whole, atomregmodel_path_final)
 
+B_strain_width = 400
+B_strain_height = 400
+B_strain_y_i = 1000 + 300
+B_strain_y_f = B_strain_y_i + B_strain_height
+B_strain_x_i = 250
+B_strain_x_f = B_strain_x_i + B_strain_width
 
+Box_strain_pixels = [B_strain_y_i, B_strain_y_f, B_strain_x_i, B_strain_x_f] 
 
+region_to_strain_atomcords = np.array([Box_strain_pixels[2]*pixel_size_whole,
+                                       (total_pixels_whole-Box_strain_pixels[1])*pixel_size_whole,
+                                       Box_strain_pixels[3]*pixel_size_whole,
+                                       (total_pixels_whole-Box_strain_pixels[0])*pixel_size_whole])
+# from nm to angstroms
+region_to_strain_atomcords = region_to_strain_atomcords*10
+
+# atomodel_filepath = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_InP_TransvNW_3\Results_nanowire3_dm3\model_cells\nanowire3_dm3_strained\region_cut_strained_purged_Col_FINAL_cut.xyz'
+
+for InSb_InP_TransvNW_3, these params works almost well, although not
+uniform displacement so never 100% correct
+displacement_vector = [-77, 120, 0]
+rotation_deg = -5.2
+
+model_displaced_path = GPA_AtoMod.Displace_Atoms_Portion(
+    path_finalcut_strainedmodel, region_to_strain_atomcords, 
+    displacement_vector, rotation_deg)
+
+'''

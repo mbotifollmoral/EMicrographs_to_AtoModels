@@ -237,7 +237,7 @@ def Extract_FEM_input_parameters(
             FEM_info_list = FEM_info_list + [text_label, text_crystal, '\n']
             continue
         
-        # most likely crystal found
+        # most likely crystal found        
         best_cryst_spot = crop_list_refined_cryst_spots[0]
         zone_axis_found =  best_cryst_spot.ZA
         scored_spot_pair = best_cryst_spot.spot_pairs_obj[0]
@@ -246,7 +246,6 @@ def Extract_FEM_input_parameters(
         hkl2_reference = scored_spot_pair.hkl2_reference
         hkl2_angle_to_x = scored_spot_pair.spot2_angle_to_x
         found_phase_name = best_cryst_spot.phase_name
-        
         
         # Here check if there exists the virtual crystal of the found_phase_name
         # and build the cell based on this or not if it does not exist

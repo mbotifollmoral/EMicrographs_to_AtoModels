@@ -168,14 +168,14 @@ def Multiscale_Template_Matching(query_image_st, template_image_st, scale_factor
     # draw a bounding box around the detected result and display the image
     image_to_show_rectangle = np.dstack([query_image_st, query_image_st, query_image_st])
     rectnonedg=cv2.rectangle(image_to_show_rectangle, (startX, startY), (endX, endY), (0, 0, 255), 2)
-    # plt.imshow(image_to_show_rectangle)
-    # plt.imshow(rectnonedg)
-    # plt.show()   
+    plt.imshow(image_to_show_rectangle)
+    plt.imshow(rectnonedg)
+    plt.show()   
     
     #How the edges look like in the query image in the found area
     cropimagequerynonedge=query_image_st[startY:endY, startX:endX]
-    # plt.imshow(cropimagequerynonedge)
-    # plt.show()  
+    plt.imshow(cropimagequerynonedge)
+    plt.show()  
 
     #!!! Check carefully the way to extract the coordinates (as they are relative to the
     # query image when doing the template matching process)
@@ -580,9 +580,9 @@ def Plot_Images_Stack_Scaling(
     
     # resize image
     resized_global = cv2.resize(flat_images_in_dataset_by_pixel_size[0].image_arraynp_st_int, dim, interpolation = cv2.INTER_LINEAR)
-    plt.figure(figsize=(100,100))
-    plt.imshow(resized_global)
-    plt.show()
+    # plt.figure(figsize=(100,100))
+    # plt.imshow(resized_global)
+    # plt.show()
     
     # loop through all the images and scale them up to fit the pixels numbers and position given by
     # relative positions array
@@ -604,9 +604,9 @@ def Plot_Images_Stack_Scaling(
         
         resized_global[startY_p:endY_p,startX_p:endX_p]=resized_im
     
-    plt.figure(figsize=(100,100))
-    plt.imshow(resized_global)
-    plt.show()
+    # plt.figure(figsize=(100,100))
+    # plt.imshow(resized_global)
+    # plt.show()
    
     return
 
