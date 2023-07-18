@@ -3817,7 +3817,6 @@ def Find_plane_paralel_to_direction(
     plane_paralel = np.dot(direction, direct_metric_tensor)
     
     plane_paralel_int = np.round(plane_paralel)
-    
     diff = np.abs(plane_paralel - plane_paralel_int)
     
     if np.sum(diff) > tolerance_diff:
@@ -3828,7 +3827,7 @@ def Find_plane_paralel_to_direction(
         gcd_2 = math.gcd(int(plane_paralel_int[1]), int(plane_paralel_int[2]))
         gcd_3 = math.gcd(int(plane_paralel_int[0]), int(plane_paralel_int[2]))
         
-        gcds = np.array([gcd_1, gcd_2, gcd_3])
+        gcds = np.abs(np.array([gcd_1, gcd_2, gcd_3]))
                 
         gcd = np.min(gcds[gcds != 0])
         
@@ -3860,7 +3859,7 @@ def Find_direction_paralel_to_plane(
     direction_paralel = np.dot(plane, reciprocal_metric_tensor)
     # Detect minimum value, except 0, we do not want the 0 as would lead to 
     # infinity , numerical unstability
-    # Only reduce the values divigin by minimum if there are some values 
+    # Only reduce the values dividing by minimum if there are some values 
     # smaller than 1 except the 0s
     if np.abs(direction_paralel[0]) < 1 or np.abs(direction_paralel[1]) < 1 or np.abs(direction_paralel[2]) < 1:
         direction_paralel_smallest = np.min(np.abs(direction_paralel[direction_paralel != 0]))
@@ -3991,7 +3990,7 @@ def angle_between_planes(
     gcd_2 = math.gcd(int(plane_1[1]), int(plane_1[2]))
     gcd_3 = math.gcd(int(plane_1[0]), int(plane_1[2]))
     
-    gcds = np.array([gcd_1, gcd_2, gcd_3])
+    gcds = np.abs(np.array([gcd_1, gcd_2, gcd_3]))
             
     gcd = np.min(gcds[gcds != 0])
     
@@ -4002,7 +4001,7 @@ def angle_between_planes(
     gcd_2 = math.gcd(int(plane_2[1]), int(plane_2[2]))
     gcd_3 = math.gcd(int(plane_2[0]), int(plane_2[2]))
     
-    gcds = np.array([gcd_1, gcd_2, gcd_3])
+    gcds = np.abs(np.array([gcd_1, gcd_2, gcd_3]))
             
     gcd = np.min(gcds[gcds != 0])
     
@@ -4183,7 +4182,7 @@ def Adjust_in_surface_plane_rotation(
     zone_axis = scored_spot_pair.ZA
 
     plane_of_zone_axis = Find_plane_paralel_to_direction(
-        zone_axis, direct_metric_tensor, tolerance_diff = 0.5)
+        zone_axis, direct_metric_tensor, tolerance_diff = 1)
 
     # choose whether to use the plane or the direction, it should be the 
     # plane always, but just to have the option to choose        

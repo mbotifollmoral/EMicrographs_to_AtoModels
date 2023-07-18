@@ -1941,11 +1941,19 @@ def Get_GPA_Res_HeteroStruct_Separated_Spots(
         
         distances_close_enough = distances_in_nm[distances_in_nm >= GPA_spot_max_dist]
         
+        
+        
         if len(distances_close_enough) != 0:
             # get the minimum one and define res bsed on this
             distances_close_enough = np.sort(distances_close_enough)[::-1]
             #Ü divide by 2 as it is the radius not the diameter
             GPA_resolution = (distances_close_enough[0] + distances_close_enough[0]*0.2)/2
+            
+            # Exception if the pixels found for the rest of found phases are 
+            # exactly the same and then the resoluion is infiinite , limit 
+            # this to the 4nm
+            if GPA_resolution > 4:
+                GPA_resolution = 4
             
             return GPA_resolution
             
@@ -1976,7 +1984,13 @@ def Get_GPA_Res_HeteroStruct_Separated_Spots(
                 distances_close_enough = np.sort(distances_close_enough)[::-1]
                 #Ü divide by 2 as it is the radius not the diameter
                 GPA_resolution = (distances_close_enough[0] + distances_close_enough[0]*0.2)/2
-                
+                            
+                # Exception if the pixels found for the rest of found phases are 
+                # exactly the same and then the resoluion is infiinite , limit 
+                # this to the 4nm
+                if GPA_resolution > 4:
+                    GPA_resolution = 4
+
                 return GPA_resolution
                 
             else:
