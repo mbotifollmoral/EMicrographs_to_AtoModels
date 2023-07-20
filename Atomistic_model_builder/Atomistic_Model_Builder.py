@@ -6493,10 +6493,15 @@ def Check_Same_SpaceGroup_Orientation(
     # ones are in the family of planes
     hkl1_ref_family = PhaseIdent.Crystal_System_Equidistance_Permutations(
         spacegroup_cell_ref, hkl1_ref)
-    hkl2_ref_family =PhaseIdent.Crystal_System_Equidistance_Permutations(
+    hkl2_ref_family = PhaseIdent.Crystal_System_Equidistance_Permutations(
         spacegroup_cell_ref, hkl2_ref)
     
     # !!! Not 100% correct, but assume the same equidsitance is same equivalent ZA
+    # Probably the correct version would be to just set 
+    # ZA_ref_family = PhaseIdent.Crystal_System_Equidistance_Permutations(
+    #     226, zone_axis_found_ref)
+    # fixing a cubic space group to ensure all ZA are found so 
+
     ZA_ref_family = PhaseIdent.Crystal_System_Equidistance_Permutations(
         spacegroup_cell_ref, zone_axis_found_ref)
     
@@ -6510,14 +6515,22 @@ def Check_Same_SpaceGroup_Orientation(
     else:
         equally_oriented = False
         return equally_oriented 
-    
+
     zone_axis_found_lab =  best_cryst_spot_lab.ZA
     found_phase_name_lab = best_cryst_spot_lab.phase_name
     
-    
+    # indicator on whether the cif cell for that label is found witin the
+    # paths of the generated virtual cells (so if there is a virtual cell
+    # generated for that label)
+    found_virtual_phase_label = 0
     for cell_filepath, scoredspotpair in zip(
             paths_to_virt_ucells, scored_spot_pairs_found):
-        if found_phase_name_lab in cell_filepath:
+        
+        # the virtual cells are named after the label they belong to
+        # so also search for that label in the name of the virutal cell
+        found_phase_name_lab_v = found_phase_name_lab +  '_' + str(int(label_of_region)) + '_v.cif'
+        
+        if found_phase_name_lab_v in cell_filepath:
         
             cif_lab_cell_filepath = cell_filepath
             
@@ -6528,6 +6541,19 @@ def Check_Same_SpaceGroup_Orientation(
             hkl1_lab = scoredspotpair.hkl1_reference
             hkl2_lab = scoredspotpair.hkl2_reference
             
+            found_virtual_phase_label = 1
+            
+            break
+            
+    # if no found phase virtual for that label, then that label has not
+    # associated virutal phase and as a result, no same orientation
+    # just the base cif cell information is kept so maybe same orientation
+    # but not found in the domains within the reference spot and GPA mask
+    if found_virtual_phase_label == 0:
+        equally_oriented = False
+        return equally_oriented           
+        
+        
     ase_unit_cell_lab = ase.io.read(cif_lab_cell_filepath)
     spacegroup_cell_lab = ase_unit_cell_lab.info['spacegroup'].no
     
@@ -6549,11 +6575,27 @@ def Check_Same_SpaceGroup_Orientation(
     hkl1_ref_family = [list(i) for i in hkl1_ref_family]
     hkl2_ref_family = [list(i) for i in hkl2_ref_family]
     
+    # The check needs to be the combinatiorial one
+    # so checking 1 with 1 and 2, and 2 with 1 and 2, this way we can check if 
+    # the planes fit despite which number 1 or 2 where they assigned 
+    # The check is exclusive to the other, so if 1 fits with 2, then it is 2 that
+    # needs to fit with 1 and not 2 with 2 (so nested crossed ifs)
+    
     if spacegroup_cell_lab == spacegroup_cell_ref:
         if zone_axis_found_lab in ZA_ref_family:
+            
+            # check if the planes are found in one of the families of planes
+            # with the exclusive permutation of checking 1 to 1 and 2, and next
+            # check dependent on whether this is true or not
             if hkl1_lab in hkl1_ref_family:
                 if hkl2_lab in hkl2_ref_family:
-                    
+                    # then they are in "almost" same spatial orientation
+                    equally_oriented = True
+                    return equally_oriented
+            # or the other possibility, that the labels 1 and 2 are crossed
+            # this is arbitrary so need to check the cross check
+            if hkl1_lab in hkl2_ref_family:
+                if hkl2_lab in hkl1_ref_family:
                     # then they are in "almost" same spatial orientation
                     equally_oriented = True
                     return equally_oriented
@@ -6569,6 +6611,13 @@ def Check_Same_SpaceGroup_Orientation(
                 # then they are in "almost" same spatial orientation
                 equally_oriented = True
                 return equally_oriented
+            
+            if hkl2_lab in hkl1_ref_family:
+
+                # then they are in "almost" same spatial orientation
+                equally_oriented = True
+                return equally_oriented
+            
                 
     # and for plane 2        
     if spacegroup_cell_lab == spacegroup_cell_ref:
@@ -6578,7 +6627,12 @@ def Check_Same_SpaceGroup_Orientation(
                 # then they are in "almost" same spatial orientation
                 equally_oriented = True
                 return equally_oriented
-    
+            
+            if hkl1_lab in hkl2_ref_family:
+                
+                # then they are in "almost" same spatial orientation
+                equally_oriented = True
+                return equally_oriented
     
     return equally_oriented
     
@@ -6731,7 +6785,6 @@ def Build_DeviceSupercell_Virtual_To_Distort(
                 label_segm_region, best_GPA_ref_spot_pair, 
                 paths_to_virt_ucells, scored_spot_pairs_found)
             
-            
             if equally_oriented_lab == True:
                 labels_equally_oriented_as_ref.append(label_segm_region)
             
@@ -6821,7 +6874,6 @@ def Build_DeviceSupercell_Virtual_To_Distort(
                             label_segm_region, 
                             model_cells_filepath, paths_to_virt_ucells, 
                             scored_spot_pairs_found, scaled_cords_spots)
-                        
                         # adjust the rotation of the virtual crystal
                         final_in_surf_plane_rotation = final_in_surf_plane_rotation + rotation_adjustment
                     
@@ -6862,7 +6914,7 @@ def Build_DeviceSupercell_Virtual_To_Distort(
         # 1.2)
         # Now build the single block for all the regions equally orietned 
         # as the reference region labeled as label_of_GPA_ref
-        
+
         image_crop_hs_signal_ref = crop_outputs_dict[str(label_of_GPA_ref) + '_hs_signal']
         crop_list_refined_cryst_spots_ref = crop_outputs_dict[str(label_of_GPA_ref) + '_list_refined_cryst_spots']
         
@@ -6985,7 +7037,7 @@ def Build_DeviceSupercell_Virtual_To_Distort(
                 #     final_in_surf_plane_rotation = .....
                 final_in_surf_plane_rotation = Adjust_in_surface_plane_rotation(
                     cif_cell_filepath, scored_spot_pair, suface_basis_choice = 'plane')
-                
+
                 # if there exists a virtual cell, build the cell based on it
                 # if not build based on base cell
                 # for all virtual crystals that are not the reference region ones                
@@ -7021,7 +7073,6 @@ def Build_DeviceSupercell_Virtual_To_Distort(
                 # The Build_Atomistic_Parallelepiped will generate a big supercell
                 # not considering the segmentation and generate a file per label 
                 
-
         
             else:
                 # len(crop_list_refined_cryst_spots) == 0

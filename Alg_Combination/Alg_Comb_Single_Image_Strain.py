@@ -74,7 +74,7 @@ tooLow_FOV = 1500 #nm, is a FOV which is too
 tol=0.05 #tolerance: how different from theoretical values the previous values can be to get good output
 min_d=0.5    #minimum interplanar distance computed in the diffraction
 forbidden = True  #Include (True) or not (False) the forbidden reflections
-crop_setting = 'mask' # 'mask' or 'crop', FFT from the mask of the segmentation or from crop inside
+crop_setting = 'crop' # 'mask' or 'crop', FFT from the mask of the segmentation or from crop inside
 
 #%%
 '''
@@ -88,15 +88,15 @@ Template matching and generation of the relative coordinates per image over the 
 # root.withdraw()
 # dataset_system_path_name = filedialog.askdirectory(parent=root,initialdir="/",title='Folder with the images dataset')
 
-dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_Sn_VLS2\Micrographs\\'
+dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_InP_TransvNW_6\Micrographs\\'
 dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_InP_TransvNW_3\Micrographs\\'
+dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_Sn_VLS2\Micrographs\\'
 dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\GeQW2\Micrographs\\'
+
 
 # Browse the images in the folder and also calibrate
 # !!! CALIBRATION CORRECTION DONE HERE --> NO NEED TO CHANGE THE CALIBRATION OF THE IMAGES AT ANY POINT
 # !!! UNLESS IMAGES ARE BINNED
-
-
 images_in_dataset_list, pixel_sizes = HighToLowTM.Browse_Dataset_Images_and_Recalibrate(
     dataset_system_path_name, real_calibration_factor)
 
@@ -622,7 +622,7 @@ conts_vertx_per_region = Segment.Relative_Vertexs_Contours(
     relative_positions_to_segment[0], pixel_sizes_to_segment[0])
 
 
-z_thickness_model = 2 # nm
+z_thickness_model = 1 # nm
 
 
 # If wanted, build the device with the perfect unmodified crystals from database    

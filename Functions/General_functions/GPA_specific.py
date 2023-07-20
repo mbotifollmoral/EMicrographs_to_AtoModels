@@ -1687,8 +1687,6 @@ def Get_GPA_best_g_vects_pair(
                         
 
 
-
-
 def Get_GPA_Res_HeteroStruct_Separated_Spots(
         analysed_image, image_in_dataset_whole, 
         best_GPA_ref_spot_pair,
@@ -1738,6 +1736,9 @@ def Get_GPA_Res_HeteroStruct_Separated_Spots(
         DESCRIPTION.
 
     '''
+    
+    # STEP 1: Retrieve the coordiantes of the reference spots and
+    # scale them to the full image coordinates
     
     # Retrieve data extracted from the reference 
     crop_outputs_dict = analysed_image.Crop_outputs
@@ -1832,11 +1833,15 @@ def Get_GPA_Res_HeteroStruct_Separated_Spots(
     spot_2_coords = np.array([scaled_cord_spot_2_GPA_y, scaled_cord_spot_2_GPA_x])    
         
     
-    closer_spot_whole_coords = [spot_1_coords, spot_2_coords][closer_spot_ind]
-    
+    # STEP 2: Get the GPA resolution by searching the spots that are making
+    # a more epitaxial relation with the reference GPA spot pair
+    # calculated by searching the proximity of the distances and angles in the 
+    # same way the g vectors are chosen. 
+    # We ensure that both spots from the considered pair of spots are within
+    # the distances mask drawn by GPA_spot_max_dist
+
     labels_unique = np.unique(image_segmented)
     labels_unique_no_ref = labels_unique[labels_unique != label_of_GPA_ref]
-    
     
     
     # Sort the best crystals from each label containing crystals found
@@ -1883,6 +1888,274 @@ def Get_GPA_Res_HeteroStruct_Separated_Spots(
         return GPA_resolution
 
     # else, if at least one phase was found, do all the checks  
+    
+    
+    # STEP INT EXPLANATION Previous loop is to build and prepeare the
+    # arrays for cghecking step 3 if necessary, but left here becase of order of
+    # coding (not a big deal)
+    # Next is the loop prepearing the epitaxial stuff
+    
+    # here check first the crystals that are best epitaxial with the planes
+    # found for being the g vectors
+    
+    
+    # labels_scored_sorted
+    # has to be generated from the ones that are more epitaxial
+    # and not by crystals but by spot pairs
+    
+    # sort the spots that are more epitaxial to the pair of spots chosen and 
+    # list them in order from the most epitaxial to the least and then
+    # get the best or more epitaxial
+    
+        
+    
+    # store All the crystals from All the segmented regions shuffled 
+    # and then sort them from lowest (best) score, to highest score
+    cryst_per_label_scored = []
+    crysts_scores = []
+    
+    # these two lists correlate 1 to 1 so we loop through the labels
+    # depending on the order of the best crysts found for each label
+    
+    for compl_label in labels_unique_no_ref:
+        
+        # Pixels within the whole image in which the crop of the reference is taken, 
+        # so the box of the reference itself [first_row,last_row,first_col,last_col]
+        scaled_reference_coords_compl_label = crop_outputs_dict[str(int(compl_label)) + '_pixel_ref_cords']
+    
+        # 
+        image_crop_hs_signal_compl_label = crop_outputs_dict[str(int(compl_label)) + '_hs_signal']
+        FFT_image_array_compl_label, _ =  ImCalTrans.Compute_FFT_ImageArray(np.asarray(image_crop_hs_signal_compl_label))
+    
+        crop_list_refined_cryst_spots_compl_label = crop_outputs_dict[str(int(compl_label)) + '_list_refined_cryst_spots']
+        refined_pixels_compl_label = crop_outputs_dict[str(int(compl_label)) + '_refined_pixels']
+        spots_int_reference_compl_label = crop_outputs_dict[str(int(compl_label)) + '_spots_int_reference']
+
+        # if at least one crystal was found in that label
+        if len(crop_list_refined_cryst_spots_compl_label) != 0:
+            # sum the scores as done in the phase identificator, to check the 
+            # best phase
+            for cryst in crop_list_refined_cryst_spots_compl_label:
+                cryst_score = 0
+                for spot_pair in cryst.spot_pairs_obj:
+                    spot_pair_score = spot_pair.score
+                    cryst_score = cryst_score + spot_pair_score
+                total_spot_pairs = len(cryst.spot_pairs_obj)
+                
+                crysts_scores.append(cryst_score/total_spot_pairs**2)
+                cryst_per_label_scored.append(cryst)
+                
+                
+    # Score all the crsytals based on their scores from best to worse crystal
+    # in terms of the scored pairs found for EVERY crystal, this way we give the
+    # possibility that the best crystal found is not the one generating the
+    # epitaxy, but another equally important
+    all_crystals_scored_sort = [crsyt for _ , crsyt in sorted(zip(crysts_scores, cryst_per_label_scored), key=lambda x: x[0])]    
+    
+    # fill the list of the spot refs to compare with the spot pair
+    spot_pairs_ref_possible = [best_GPA_ref_spot_pair]
+    
+    # this list contains, for every spot pair in reference region to be checked
+    # if it is the one to be used for GPA, so paired 1 to 1 with the list of spot
+    # pairs spot_pairs_ref_possible, the metric explaining how good and close
+    # the pair of spot pairs is correlating with each other, meaining that 
+    # the more epitaxial the spots are, the best score (lowest number) will
+    # be provided and will be used and that spot pair with the lowest
+    # score will be the chosen spot pair for the GPA calculation
+    # NOT USED in this function, but in the find g vects one
+    best_spot_pair_pair_metrics = [] 
+    
+    # chekc for all possible spot pairs to be used as GPA spot pairs g vects     
+    for pos_ref_spot_pair in spot_pairs_ref_possible:    
+        
+        # the ref spots info
+        dist_1_posref = pos_ref_spot_pair.spot1_dist
+        dist_2_posref = pos_ref_spot_pair.spot2_dist
+        
+        angle_x_1_posref = pos_ref_spot_pair.spot1_angle_to_x
+        angle_x_2_posref = pos_ref_spot_pair.spot2_angle_to_x
+
+        # here gather the metric for all the spots in all the crystals,
+        # we do not want to separate by crystal but to get from all
+        # possible crystals which is the score or metric implying a best
+        # epitaxy with the reference spot considered, so every reference 
+        # spot considered has a best score, from 1 spot pair from 1 of the 
+        # crystals found
+        
+        best_diff_metrics_all_spot_pairs = []
+        spot_pairs_metriced = []
+            
+        # analyse the planes from other labels          
+        for cryst in all_crystals_scored_sort:
+                          
+            for spot_pair in cryst.spot_pairs_obj:
+                
+                dist_1_check = spot_pair.spot1_dist
+                dist_2_check = spot_pair.spot2_dist
+                
+                angle_x_1_check = spot_pair.spot1_angle_to_x
+                angle_x_2_check = spot_pair.spot2_angle_to_x
+                
+                
+                # compute the differences between the combinations of spots1 and 2
+                # from each spot checked, so 4 combinations
+                distances_diff_1 = np.abs(dist_1_posref - dist_1_check)
+                distances_diff_2 = np.abs(dist_1_posref - dist_2_check)
+                distances_diff_3 = np.abs(dist_2_posref - dist_1_check)
+                distances_diff_4 = np.abs(dist_2_posref - dist_2_check)
+                
+                angles_diff_1 = np.abs(angle_x_1_posref - angle_x_1_check)
+                angles_diff_2 = np.abs(angle_x_1_posref - angle_x_2_check)
+                angles_diff_3 = np.abs(angle_x_2_posref - angle_x_1_check)
+                angles_diff_4 = np.abs(angle_x_2_posref - angle_x_2_check)
+                
+                # then the lowest sum of defs expresses the actual best
+                # 1 to 1 spot correlation from reference to the other crystal 
+                # chceked and therefore is its defining value
+                # This is angle in degrees plus distance in nm, so completely
+                # unphyiscal and just a quick figure of merit
+                sum_diffs_1 = distances_diff_1 + angles_diff_1
+                sum_diffs_2 = distances_diff_2 + angles_diff_2
+                sum_diffs_3 = distances_diff_3 + angles_diff_3
+                sum_diffs_4 = distances_diff_4 + angles_diff_4
+                
+                # best_sum_diffs is the score of the pairing of the
+                # possible spot in reference and the one checked in the
+                # crystal from other region identified
+                best_sum_diffs = np.min([sum_diffs_1, sum_diffs_2, 
+                                         sum_diffs_3, sum_diffs_4])
+                
+                # store it
+                best_diff_metrics_all_spot_pairs.append(best_sum_diffs)
+                spot_pairs_metriced.append(spot_pair)
+            
+            
+        # We sort all the spot pairs considered based on how epitaxial
+        # they are with respect the best GPA spot pair ref found 
+        # in the previous functio used to determine the best g vectors
+        
+        
+        sorted_epitaxial_spot_pairs = [spot_pair for _ , spot_pair in sorted(
+            zip(best_diff_metrics_all_spot_pairs, spot_pairs_metriced), key=lambda x: x[0])]    
+        
+    # sorted_epitaxial_spot_pairs contains the sorted spots pairs that are
+    # closer to epitaxy with the reference one
+    # we need to get the coordinates within the image of the spots wiihtin 
+    # the spot pair
+    
+    # Go throught the spot pairs in the sorted epitaxial spot pairs to 
+    # chose the best spot pair that is more epitaxial and whose distance with
+    # respect the reference one is within the stablished limit of GPA_spot_max_dist
+    for epi_spot_pair in sorted_epitaxial_spot_pairs:
+
+        for compl_label in labels_unique_no_ref:
+            
+            # Pixels within the whole image in which the crop of the reference is taken, 
+            # so the box of the reference itself [first_row,last_row,first_col,last_col]
+            scaled_reference_coords_compl_label = crop_outputs_dict[str(int(compl_label)) + '_pixel_ref_cords']
+        
+            # 
+            image_crop_hs_signal_compl_label = crop_outputs_dict[str(int(compl_label)) + '_hs_signal']
+            FFT_image_array_compl_label, _ =  ImCalTrans.Compute_FFT_ImageArray(np.asarray(image_crop_hs_signal_compl_label))
+        
+            crop_list_refined_cryst_spots_compl_label = crop_outputs_dict[str(int(compl_label)) + '_list_refined_cryst_spots']
+            refined_pixels_compl_label = crop_outputs_dict[str(int(compl_label)) + '_refined_pixels']
+            spots_int_reference_compl_label = crop_outputs_dict[str(int(compl_label)) + '_spots_int_reference']
+    
+            # if at least one crystal was found in that label
+            if len(crop_list_refined_cryst_spots_compl_label) == 0:
+                continue
+            
+            for crystal in crop_list_refined_cryst_spots_compl_label:
+                
+                if epi_spot_pair in crystal.spot_pairs_obj:
+                    
+                    epispotpair_1_int_ref = epi_spot_pair.spot1_int_ref
+                    epispotpair_2_int_ref = epi_spot_pair.spot2_int_ref
+                    
+                    epispotpair_1_basecord = refined_pixels_compl_label[epispotpair_1_int_ref]
+                    epispotpair_2_basecord = refined_pixels_compl_label[epispotpair_2_int_ref]
+                                  
+                    # the pixel coordinates need to be rescaled to the whole image
+                    epispotpair_1_scaledcord = (epispotpair_1_basecord/FFT_image_array_compl_label.shape[0])*total_pixels_whole       
+                    epispotpair_2_scaledcord = (epispotpair_2_basecord/FFT_image_array_compl_label.shape[0])*total_pixels_whole
+              
+                    break            
+                        
+            
+        # Now taking the spot pair refernce coordinates as the ones
+        # to center the calculation, we compute the distances from one to other
+        # form the 4 combinations possible
+        # or get the mininum from 1 ref to 1 and 2 possible and 
+        # min from 2 ref to 1 and 2 possible and check twice if one or the other 
+        # is below the GPA limit set
+        
+            
+        # Taking spot reference 1 as reference for the calculation
+        # with epitaxial spot pair 1
+        distances_y_1_1 = np.abs(epispotpair_1_scaledcord[0] - spot_1_coords[0])*FFT_calibration_whole
+        distances_x_1_1 = np.abs(epispotpair_1_scaledcord[1] - spot_1_coords[1])*FFT_calibration_whole
+    
+        distance_in_nminv_1_1 = np.sqrt(distances_y_1_1**2 + distances_x_1_1**2)
+        distance_in_nm_1_1 = 1/distance_in_nminv_1_1
+        
+        # with epitaxial spot pair 2
+        distances_y_1_2 = np.abs(epispotpair_2_scaledcord[0] - spot_1_coords[0])*FFT_calibration_whole
+        distances_x_1_2 = np.abs(epispotpair_2_scaledcord[1] - spot_1_coords[1])*FFT_calibration_whole
+        
+        distance_in_nminv_1_2 = np.sqrt(distances_y_1_2**2 + distances_x_1_2**2)
+        distance_in_nm_1_2 = 1/distance_in_nminv_1_2
+        
+        # take the biggest distance as reference (meaning the spots are closer
+        # and therefore is the one defining the epitaxy)
+        dist_ref_1_to = np.max([distance_in_nm_1_1, distance_in_nm_1_2])
+            
+        # Taking spot reference 2 as reference for the calculation
+        # with epitaxial spot pair 1
+        distances_y_2_1 = np.abs(epispotpair_1_scaledcord[0] - spot_2_coords[0])*FFT_calibration_whole
+        distances_x_2_1 = np.abs(epispotpair_1_scaledcord[1] - spot_2_coords[1])*FFT_calibration_whole
+            
+        distance_in_nminv_2_1 = np.sqrt(distances_y_2_1**2 + distances_x_2_1**2)
+        distance_in_nm_2_1 = 1/distance_in_nminv_2_1
+            
+        # with epitaxial spot pair 2
+        distances_y_2_2 = np.abs(epispotpair_2_scaledcord[0] - spot_2_coords[0])*FFT_calibration_whole
+        distances_x_2_2 = np.abs(epispotpair_2_scaledcord[1] - spot_2_coords[1])*FFT_calibration_whole
+            
+        distance_in_nminv_2_2 = np.sqrt(distances_y_2_2**2 + distances_x_2_2**2)
+        distance_in_nm_2_2 = 1/distance_in_nminv_2_2
+        # take the biggest distance as reference (meaning the spots are closer
+        # and therefore is the one defining the epitaxy)
+        dist_ref_2_to = np.max([distance_in_nm_2_1, distance_in_nm_2_2])
+        # Check if both spots are within the mask drawn by GPA_spot_max_dist
+        if dist_ref_1_to >= GPA_spot_max_dist and dist_ref_2_to >= GPA_spot_max_dist:
+            # We accept this spot pair as the one defining the GPA resolution, 
+            # and we compute the further one from both
+            further_spot_distance = np.min([dist_ref_1_to, dist_ref_2_to])
+            
+            # And define the GPA resolution based on this
+            GPA_resolution = (further_spot_distance + further_spot_distance*0.2)/2
+            # Strictly speaking one would need to subtract part of the distance
+            # to make the mask bigger
+            # GPA_resolution = (further_spot_distance - further_spot_distance*0.1)/2
+        
+            # Exception if the pixels found for the rest of found phases are 
+            # exactly the same and then the resoluion is infiinite , go to next
+            # checkeable pair of spots
+            if GPA_resolution > 4:
+                continue
+            else:
+        
+                return GPA_resolution
+        
+
+    # STEP 3: If no pair of spot was foudn epitaxial within the mask, then 
+    # check the spots 1 to 1 and see if we can find one within the mask but 
+    # 1 at a time, so this will surely give a solution but maybe not the best
+    # as the best should be already found if proper epitaxt is present            
+    
+    closer_spot_whole_coords = [spot_1_coords, spot_2_coords][closer_spot_ind]
+
     
     # Sort the labels list based on the score for the crystals found for each
     # label being the lowest label the best crystal
@@ -1948,6 +2221,9 @@ def Get_GPA_Res_HeteroStruct_Separated_Spots(
             distances_close_enough = np.sort(distances_close_enough)[::-1]
             #Ü divide by 2 as it is the radius not the diameter
             GPA_resolution = (distances_close_enough[0] + distances_close_enough[0]*0.2)/2
+            # Strictly speaking one would need to subtract part of the distance
+            # to make the mask bigger
+            # GPA_resolution = (further_spot_distance - further_spot_distance*0.1)/2
             
             # Exception if the pixels found for the rest of found phases are 
             # exactly the same and then the resoluion is infiinite , limit 
@@ -1984,7 +2260,10 @@ def Get_GPA_Res_HeteroStruct_Separated_Spots(
                 distances_close_enough = np.sort(distances_close_enough)[::-1]
                 #Ü divide by 2 as it is the radius not the diameter
                 GPA_resolution = (distances_close_enough[0] + distances_close_enough[0]*0.2)/2
-                            
+                # Strictly speaking one would need to subtract part of the distance
+                # to make the mask bigger
+                # GPA_resolution = (further_spot_distance - further_spot_distance*0.1)/2
+
                 # Exception if the pixels found for the rest of found phases are 
                 # exactly the same and then the resoluion is infiinite , limit 
                 # this to the 4nm
