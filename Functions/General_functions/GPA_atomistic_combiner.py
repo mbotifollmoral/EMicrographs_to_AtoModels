@@ -1196,7 +1196,7 @@ def Build_All_Virtual_Crysts_Except_Ref(
     return paths_to_virt_ucells
         
 
-
+# Good function for building all the virtual crystals except the reference region
 
 def Build_All_Virtual_Crysts_SameDistRef(
         analysed_image, image_in_dataset_whole, 
