@@ -5446,7 +5446,7 @@ def Find_plane_pointing_to_final_cartesian_x_axis(
                 
                 R = -(np.sign(v)*np.sign(w))
                 
-                if A == 0 or A < 1e-15:
+                if A == 0 or abs(A) < 1e-15:
                     
                     kx_1 = (n*gf_norm2*np.cos((np.pi/180)*abs(angle_exp_use)))/(2*B)
                     kx_2 = (n*gf_norm2*np.cos((np.pi/180)*abs(angle_exp_use)))/(2*B)
@@ -5561,7 +5561,7 @@ def Find_plane_pointing_to_final_cartesian_x_axis(
                 
                 R = -(np.sign(u)*np.sign(w))
                 
-                if B == 0 or B < 1e-15:
+                if B == 0 or abs(B) < 1e-15:
             
                     hx_1 = (n*gf_norm2*np.cos((np.pi/180)*abs(angle_exp_use)))/(2*A)
                     hx_2 = (n*gf_norm2*np.cos((np.pi/180)*abs(angle_exp_use)))/(2*A)
@@ -5670,7 +5670,7 @@ def Find_plane_pointing_to_final_cartesian_x_axis(
         else:
             # general case
             
-            if A== 0 or A < 1e-15:
+            if A== 0 or abs(A) < 1e-15:
                 K = (n*gf_norm2*np.cos((np.pi/180)*angle_exp_use))/B
                 X = -C/B
                 
