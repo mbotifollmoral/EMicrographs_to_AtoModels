@@ -76,6 +76,22 @@ min_d=0.5    #minimum interplanar distance computed in the diffraction
 forbidden = True  #Include (True) or not (False) the forbidden reflections
 crop_setting = 'crop' # 'mask' or 'crop', FFT from the mask of the segmentation or from crop inside
 
+
+# Hyperparameters to select the box in which the atomistic model and strain
+# transfer is going to be calculated
+B_strain_width = 400
+B_strain_height = 400
+B_strain_y_i = 1000
+B_strain_y_f = B_strain_y_i + B_strain_height
+B_strain_x_i = 250
+B_strain_x_f = B_strain_x_i + B_strain_width
+
+# Box formatting of the 
+Box_strain_pixels = [B_strain_y_i, B_strain_y_f, B_strain_x_i, B_strain_x_f] 
+
+
+
+
 #%%
 '''
 Template matching and generation of the relative coordinates per image over the lowest mag one
@@ -89,9 +105,9 @@ Template matching and generation of the relative coordinates per image over the 
 # dataset_system_path_name = filedialog.askdirectory(parent=root,initialdir="/",title='Folder with the images dataset')
 
 dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_InP_TransvNW_6\Micrographs\\'
-dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_InP_TransvNW_3\Micrographs\\'
-dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_Sn_VLS2\Micrographs\\'
 dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\GeQW2\Micrographs\\'
+dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_Sn_VLS2\Micrographs\\'
+dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_InP_TransvNW_3\Micrographs\\'
 
 
 # Browse the images in the folder and also calibrate
@@ -339,7 +355,7 @@ label_of_substrate = GPA_sp.Define_Region_as_GPA_Reference(
 
 
 # With the 1st approximation just define the label  of the reference we want
-# label_of_GPA_ref = 4
+# label_of_GPA_ref = 3
 
 
 # Pixels within the whole image in which the crop of the reference is taken, 
@@ -369,7 +385,23 @@ scaled_reference_coords_GPA_ref = GPA_sp.Mod_GPA_RefRectangle(
     scaled_reference_coords_GPA_ref, GPA_square_factor)
 
 
-# 
+
+# Manually mod the coordinates of the gpa reference box
+
+# B_strain_width = 50
+# B_strain_height = 50
+# B_strain_y_i = 1000 + 300
+# B_strain_y_f = B_strain_y_i + B_strain_height
+# B_strain_x_i = 250 + 100
+# B_strain_x_f = B_strain_x_i + B_strain_width
+
+
+# scaled_reference_coords_GPA_ref = [B_strain_y_i, B_strain_y_f, B_strain_x_i, B_strain_x_f] 
+
+
+
+
+# Analysed image info from the label of GPA region
 image_crop_hs_signal_GPA_ref = crop_outputs_dict[str(int(label_of_GPA_ref)) + '_hs_signal']
 FFT_image_array_GPA_ref, _ =  ImCalTrans.Compute_FFT_ImageArray(np.asarray(image_crop_hs_signal_GPA_ref))
 
@@ -510,6 +542,45 @@ for result_image_name, result_image_array in zip(['exx','eyy','exy','eyx','rot',
     im.save(save_GPA_element_directory, "TIFF")
 
 
+#%%
+
+'''
+Strain correction profile displacement continous maker
+'''
+
+# Displace_thresh could be a fragment of the GPA resooution, as if found a 
+# resolution that is differnet frm the 4nm, so meaning the GPA resolution was
+# found to be with a nother spot that is at same orientation,
+# the threshold can be afraction of this trhesold meaning that  if the displacemnt is bigger than
+# maybe half of this distance in between both regions then you decide to reunite them
+# and make them continous
+    
+# Compute the original displacement map crop without the shifting
+Disp_x = (Dispx[Box_strain_pixels[0]:Box_strain_pixels[1],
+                Box_strain_pixels[2]:Box_strain_pixels[3]])*pixel_size_whole
+
+Disp_y = (Dispy[Box_strain_pixels[0]:Box_strain_pixels[1],
+                Box_strain_pixels[2]:Box_strain_pixels[3]])*pixel_size_whole
+# !!! UNITS CHANGE (nm --> angstroms)
+# The dispacement needs to be in the units of the atomic coordinates
+# in the model, so in angstroms
+Disp_x = Disp_x*10
+Disp_y = Disp_y*10
+
+
+
+# Modify the displacement functions to make them continous if they present
+# a jump discontinuity in its domain
+Disp_x, Disp_y = GPA_AtoMod.Make_Displacement_Maps_Continuous(
+    Dispx, Dispy, Box_strain_pixels, pixel_size_whole, 
+    displace_thresh = 30, show_maps_profiles = True)
+
+
+# Print_DispMap_VertProfiles(
+#     new_Disp_x, pixel_size_whole)
+
+
+
 
 #%%
 '''
@@ -536,11 +607,9 @@ FFT_indexer.Colour_Mix_BraggFilteredPhases(
 
 #%%
 
-
 '''
 Translation of GPA information, displacement fields, into the atomistic model
 '''
-
 
 # Convert all found phases into cif files
 model_cells_filepath = AtomBuild.cif_from_uce_All_found_phases(
@@ -577,10 +646,16 @@ refined_distances_of_GPA_ref = PhaseIdent.Spot_coord_To_d_spacing_vect(
 refined_distances_of_GPA_ref = ImCalTrans.nm_to_Angstroms(
     refined_distances_of_GPA_ref)
 
+
+# !!! HYPERPARAM:Choose whether we can change or alter the cell 
+# symmetry or modify the original symmetry if possible 
+virtcell_sym_setting = 'crystal_sym'
+
 # compute the virtual cell parameters with the refined distances from the reference area
 a_v_cell, b_v_cell, c_v_cell = GPA_AtoMod.Find_virtual_a_cell_c_cell_params(
     GPA_ref_cell_params, hkl1_reference_GPA_ref, hkl2_reference_GPA_ref, 
-    refined_distances_of_GPA_ref[0], refined_distances_of_GPA_ref[1])
+    refined_distances_of_GPA_ref[0], refined_distances_of_GPA_ref[1],
+    setting = virtcell_sym_setting)
 
 # Build the virtual cif file for the reference region
 path_to_v_unitcell = GPA_AtoMod.Build_virtual_crystal_cif(
@@ -602,7 +677,8 @@ path_to_v_unitcell = GPA_AtoMod.Build_virtual_crystal_cif(
 paths_to_virt_ucells, scored_spot_pairs_found, scaled_cords_spots = GPA_AtoMod.Build_All_Virtual_Crysts_SameDistRef(
     analysed_image_only, image_in_dataset_whole, best_GPA_ref_spot_pair,
     refined_distances_of_GPA_ref[0], refined_distances_of_GPA_ref[1], 
-    images_segmented[0],  label_of_GPA_ref, GPA_resolution, model_cells_filepath)
+    images_segmented[0],  label_of_GPA_ref, GPA_resolution, model_cells_filepath,
+    virtcell_sym_setting)
 
 
 #%%
@@ -622,7 +698,7 @@ conts_vertx_per_region = Segment.Relative_Vertexs_Contours(
     relative_positions_to_segment[0], pixel_sizes_to_segment[0])
 
 
-z_thickness_model = 1 # nm
+z_thickness_model = 1.3 # nm
 
 
 # If wanted, build the device with the perfect unmodified crystals from database    
@@ -666,18 +742,8 @@ input_FEM_filename = FEMBuild.Extract_FEM_input_parameters(
 Transfer strain map to atomistic model
 '''
 
-# # Plotting the displacement field in small regions
-
-B_strain_width = 400
-B_strain_height = 400
-B_strain_y_i = 1000
-B_strain_y_f = B_strain_y_i + B_strain_height
-B_strain_x_i = 250
-B_strain_x_f = B_strain_x_i + B_strain_width
-
-
-Box_strain_pixels = [B_strain_y_i, B_strain_y_f, B_strain_x_i, B_strain_x_f] 
-
+# From the box selected in the hyperparameters cell, we perform the
+# transfer of the strain information to the cells
 
 # !!! Strain distortion to models Hyperparameters
 B_strain_aug_fact = 0.15
@@ -686,14 +752,13 @@ purge_interatomic_distance = True
 purge_wrong_displacements = False
 
 
-
 # Path to the global cell if it is just one cell, named global...
 # which is a required input afterwards for that case when multiple phases
 # are found in the same orientation/SG, if no phases same orientation/SG
 # just ignore it as it will just point to the last label file
 # it is not used as we later filter by len(labels_equally_oriented_as_ref)
 path_global_strained_purged = GPA_AtoMod.Distort_AtoModel_Region(
-    atom_models_filepath, Dispx, Dispy, Box_strain_pixels, 
+    atom_models_filepath, Disp_x, Disp_y, Box_strain_pixels, 
     pixel_size_whole, total_pixels_whole,
     B_strain_aug_fact = B_strain_aug_fact, min_dist_red_fact = min_dist_red_fact,
     purge_interatomic_distance = purge_interatomic_distance, 

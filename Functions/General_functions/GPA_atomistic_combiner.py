@@ -635,7 +635,7 @@ def GPA_full_AtomisticModel(
 
 def Find_virtual_a_cell_c_cell_params(
         base_cell_params, hkl1, hkl2, 
-        spot1_dist, spot2_dist):
+        spot1_dist, spot2_dist, setting = 'crystal_sym'):
     '''
     Find the a and c cell parameters of the virtual crystal given
     the double set of planes identified as 
@@ -647,10 +647,12 @@ def Find_virtual_a_cell_c_cell_params(
     hkl1 : array, h1, k1, l1
     hkl2 :  array, h2, k2, l2
     spot1_dist : exp distance found for spot 1 or plane 1
-        DESCRIPTION.
     spot2_dist : exp distance found for spot 2 or plane 2
-        DESCRIPTION.
-
+    setting: how to compute the a,b,c and which assumptions we are making
+            between them, meaning if we keep the crystal symmetry
+            so setting = 'crystal_sym', or we can change it if we have enough
+            linear independence for computing it, so setting = 'sym_change'
+        
     Returns
     -------
     a_v_cell, b_v_cell, c_v_cell , cell parameters of the virtual cell
@@ -689,7 +691,6 @@ def Find_virtual_a_cell_c_cell_params(
 
     
     
-    
     a_or, b_or, c_or, alfa, beta, gamma = base_cell_params
     
     # n : equivalence between original a and b ; n = b_original/a_original
@@ -701,82 +702,120 @@ def Find_virtual_a_cell_c_cell_params(
     theta = 1 - (np.cos(alfa*(np.pi/180)))**2 - (np.cos(beta*(np.pi/180)))**2 \
     - (np.cos(gamma*(np.pi/180)))**2  \
     + 2*(np.cos(alfa*(np.pi/180)))*(np.cos(beta*(np.pi/180)))*(np.cos(gamma*(np.pi/180)))
-    
-    # terms first equation
-    c2_1 = (h1**2)*(n**2)*((np.sin(alfa*(np.pi/180)))**2) \
-        + 2*h1*k1*n*F(alfa, beta, gamma) + (k1**2)*((np.sin(beta*(np.pi/180)))**2)
-        
-    a_c_1 = 2*h1*l1*(n**2)*F(gamma, alfa, beta) + 2*k1*l1*n*F(beta, gamma, alfa)
-    
-    a2_1 = (l1**2)*(n**2)*((np.sin(gamma*(np.pi/180)))**2)
-    
-    a2_c2_1 = -((n**2)*theta)/((spot1_dist)**2)
-    
-    
-    # terms second equation
-    c2_2 = (h2**2)*(n**2)*((np.sin(alfa*(np.pi/180)))**2) \
-        + 2*h2*k2*n*F(alfa, beta, gamma) + (k2**2)*((np.sin(beta*(np.pi/180)))**2)
-        
-    a_c_2 = 2*h2*l2*(n**2)*F(gamma, alfa, beta) + 2*k2*l2*n*F(beta, gamma, alfa)
-    
-    a2_2 = (l2**2)*(n**2)*((np.sin(gamma*(np.pi/180)))**2)
-    
-    a2_c2_2 = -((n**2)*theta)/((spot2_dist)**2)
-    
-    c, a = sympy.var('c a')
-    
-    eq_1 = c2_1*(c**2) + a_c_1*a*c + a2_1*(a**2) + a2_c2_1*(a**2)*(c**2) 
-    eq_2 = c2_2*(c**2) + a_c_2*a*c + a2_2*(a**2) + a2_c2_2*(a**2)*(c**2) 
-    
-    solutions = sympy.solve((eq_1, eq_2), (c, a))
-    
-    solutions = [list(solution) for solution in solutions]
-    
-    # check if there is a tuple where the two elements are 
-    # postiive whichm means a real soltion 
-    solution_found = 0
-    
-    for solution in solutions:
-        # ensure both checked values are real to make the comparison
-        # convert sympy elements into numpy elements
 
-        if type(solution[0]) == sympy.core.numbers.Float or solution[0]==0:
-            solution[0] = float(solution[0])
-        elif type(solution[0]) == sympy.core.symbol.Symbol:
-            # if the expression is simbolic depending on 1 of the 
-            # parameters, then go to next possible solution
-            continue
-        else:
-        # elif type(solution[0]) == sympy.core.mul.Mul:
-            solution[0] = complex(solution[0])
-            
-
-        # convert sympy elements into numpy elements
-        if type(solution[1]) == sympy.core.numbers.Float or solution[1]==0:
-            solution[1] = float(solution[1])
-        elif type(solution[1]) == sympy.core.symbol.Symbol:
-            # if the expression is simbolic depending on 1 of the 
-            # parameters, then go to next possible solution
-            continue
-        else:
-        # elif type(solution[0]) == sympy.core.mul.Mul:
-            solution[1] = complex(solution[1])
-        
-        if np.iscomplex(solution[0]) == False and np.iscomplex(solution[1]) == False:
-            # now just keep the two positive values solution 
-            if solution[0]> 0 and solution[1]>0:
-                final_solution = solution
-                solution_found = 1
-                break
-            
     
-    if solution_found == 1:
-        # solution found in the a != c regime
-        a_v_cell = final_solution[1]
-        b_v_cell = n*a_v_cell
-        c_v_cell = final_solution[0]
+    # if we can change the crystal symmetry
+    if setting == 'sym_change':
+    
+    
+        # terms first equation
+        c2_1 = (h1**2)*(n**2)*((np.sin(alfa*(np.pi/180)))**2) \
+            + 2*h1*k1*n*F(alfa, beta, gamma) + (k1**2)*((np.sin(beta*(np.pi/180)))**2)
+            
+        a_c_1 = 2*h1*l1*(n**2)*F(gamma, alfa, beta) + 2*k1*l1*n*F(beta, gamma, alfa)
         
-    else:
+        a2_1 = (l1**2)*(n**2)*((np.sin(gamma*(np.pi/180)))**2)
+        
+        a2_c2_1 = -((n**2)*theta)/((spot1_dist)**2)
+        
+        
+        # terms second equation
+        c2_2 = (h2**2)*(n**2)*((np.sin(alfa*(np.pi/180)))**2) \
+            + 2*h2*k2*n*F(alfa, beta, gamma) + (k2**2)*((np.sin(beta*(np.pi/180)))**2)
+            
+        a_c_2 = 2*h2*l2*(n**2)*F(gamma, alfa, beta) + 2*k2*l2*n*F(beta, gamma, alfa)
+        
+        a2_2 = (l2**2)*(n**2)*((np.sin(gamma*(np.pi/180)))**2)
+        
+        a2_c2_2 = -((n**2)*theta)/((spot2_dist)**2)
+        
+        c, a = sympy.var('c a')
+        
+        eq_1 = c2_1*(c**2) + a_c_1*a*c + a2_1*(a**2) + a2_c2_1*(a**2)*(c**2) 
+        eq_2 = c2_2*(c**2) + a_c_2*a*c + a2_2*(a**2) + a2_c2_2*(a**2)*(c**2) 
+        
+        solutions = sympy.solve((eq_1, eq_2), (c, a))
+        
+        solutions = [list(solution) for solution in solutions]
+        
+        # check if there is a tuple where the two elements are 
+        # postiive whichm means a real soltion 
+        solution_found = 0
+        
+        for solution in solutions:
+            # ensure both checked values are real to make the comparison
+            # convert sympy elements into numpy elements
+    
+            if type(solution[0]) == sympy.core.numbers.Float or solution[0]==0:
+                solution[0] = float(solution[0])
+            elif type(solution[0]) == sympy.core.symbol.Symbol:
+                # if the expression is simbolic depending on 1 of the 
+                # parameters, then go to next possible solution
+                continue
+            else:
+            # elif type(solution[0]) == sympy.core.mul.Mul:
+                solution[0] = complex(solution[0])
+                
+    
+            # convert sympy elements into numpy elements
+            if type(solution[1]) == sympy.core.numbers.Float or solution[1]==0:
+                solution[1] = float(solution[1])
+            elif type(solution[1]) == sympy.core.symbol.Symbol:
+                # if the expression is simbolic depending on 1 of the 
+                # parameters, then go to next possible solution
+                continue
+            else:
+            # elif type(solution[0]) == sympy.core.mul.Mul:
+                solution[1] = complex(solution[1])
+            
+            if np.iscomplex(solution[0]) == False and np.iscomplex(solution[1]) == False:
+                # now just keep the two positive values solution 
+                if solution[0]> 0 and solution[1]>0:
+                    final_solution = solution
+                    solution_found = 1
+                    break
+                
+        
+        if solution_found == 1:
+            # solution found in the a != c regime
+            a_v_cell = final_solution[1]
+            b_v_cell = n*a_v_cell
+            c_v_cell = final_solution[0]
+            
+        else:
+            # solution not found in the a != c regime
+            # this means both planes should give the same experimental distance
+            # but as they are experimetal this is not happening, so just average
+            # what would be obtained with both in a homogenous distortion of the
+            # original cell that keeps the same relations with their cell params
+            # else find the pattern with a  n1 = a/b n2 = a/c
+            # so develop the recirpocal tnesor calcultation with just 1 variable and
+            # then 1 equation and then make the average of both results with the two equations
+        
+            # n1 : equivalence between original a and b ; n1 = b_original/a_original
+            n1 = b_or/a_or
+            # n2 : equivalence between original a and c ; n2 = c_original/a_original
+            n2 = c_or/a_or
+            
+            # compute the a with plane 1
+            a_v_cell_1 = Find_a_cell(
+                h1, k1, l1, spot1_dist, n1, n2)
+            # compute the a with plane 2
+            a_v_cell_2 = Find_a_cell(
+                h2, k2, l2, spot2_dist, n1, n2)
+            
+            # !!! There is around 1% of experimental error in the estimation of the
+            # unit cell parameters in this way by assuming just one of  
+            # unknown, and then the relations between original cell params
+            # Average both
+            a_v_cell = np.mean(np.array([a_v_cell_1, a_v_cell_2]))
+        
+            b_v_cell = n1*a_v_cell
+            c_v_cell = n2*a_v_cell
+        
+    # ff we want to keep the crystal symetry  
+    elif setting == 'crystal_sym':
+        
         # solution not found in the a != c regime
         # this means both planes should give the same experimental distance
         # but as they are experimetal this is not happening, so just average
@@ -806,6 +845,11 @@ def Find_virtual_a_cell_c_cell_params(
     
         b_v_cell = n1*a_v_cell
         c_v_cell = n2*a_v_cell
+        
+        
+    else:
+        raise Exception('No valid setting inputted for computing virtual cell parameters')
+        
 
     return a_v_cell, b_v_cell, c_v_cell 
 
@@ -1181,7 +1225,7 @@ def Build_All_Virtual_Crysts_Except_Ref(
         # compute the virtual cell parameters 
         a_v_cell, b_v_cell, c_v_cell = Find_virtual_a_cell_c_cell_params(
             base_cell_params, hkls_to_use_v[0], hkls_to_use_v[1], 
-            distances_to_use_v[0], distances_to_use_v[1])
+            distances_to_use_v[0], distances_to_use_v[1], setting = 'crystal_sym')
                 
 
         # Build the cif file for the reference region
@@ -1204,7 +1248,7 @@ def Build_All_Virtual_Crysts_SameDistRef(
         dist_spot_1_ref_subpix,
         dist_spot_2_ref_subpix,
         image_segmented, label_of_GPA_ref,
-        GPA_resolution, model_cells_filepath):
+        GPA_resolution, model_cells_filepath, virtcell_sym_setting):
     
     '''
     Builds virtual crystals based on these spots that are within the mask
@@ -1233,6 +1277,16 @@ def Build_All_Virtual_Crysts_SameDistRef(
     label_of_GPA_ref : label corresponding to the region taken as reference
     GPA_resolution : resolution in nm of the mask found in the GPA
     model_cells_filepath : path to the cif cells
+    virtcell_sym_setting: setting to use in the Find the virutal cell params
+                        function, whether we want to keep the original symmetry
+                        of the crystal or we can change it
+                        settings allowed 
+                : how to compute the a,b,c and which assumptions we are making
+                        between them, meaning if we keep the crystal symmetry
+                        so setting = 'crystal_sym', or we can change it if we have enough
+                        linear independence for computing it, so setting = 'sym_change'
+                    in function Find_virtual_a_cell_c_cell_params
+
 
     Returns
     -------
@@ -1497,7 +1551,8 @@ def Build_All_Virtual_Crysts_SameDistRef(
             # compute the virtual cell parameters 
             a_v_cell, b_v_cell, c_v_cell = Find_virtual_a_cell_c_cell_params(
                 base_cell_params, hkl_corresp_spot_1, hkl_corresp_spot_2, 
-                dist_spot_1_ref_subpix, dist_spot_2_ref_subpix)
+                dist_spot_1_ref_subpix, dist_spot_2_ref_subpix, 
+                setting = virtcell_sym_setting)
                     
             # Build the cif file for the region
             path_to_v_unitcell = Build_virtual_crystal_cif(
@@ -1559,7 +1614,8 @@ def Build_All_Virtual_Crysts_SameDistRef(
             # compute the virtual cell parameters 
             a_v_cell, b_v_cell, c_v_cell = Find_virtual_a_cell_c_cell_params(
                 base_cell_params, hkl_corresp_spot, hkl_corresp_spot, 
-                dist_spot_com_ref_subpix, dist_spot_com_ref_subpix)
+                dist_spot_com_ref_subpix, dist_spot_com_ref_subpix,
+                setting = virtcell_sym_setting)
                     
             # Build the cif file for the reference region
             path_to_v_unitcell = Build_virtual_crystal_cif(
@@ -1766,9 +1822,9 @@ def Get_Average_NearestNeighbour_Atomod(
 
 
 
-
+# modded watch out Dispx to Disp_x
 def Distort_AtoModel_Region(
-        atom_models_filepath, Dispx, Dispy, Box_strain_pixels, 
+        atom_models_filepath, Disp_x, Disp_y, Box_strain_pixels, 
         pixel_size_whole, total_pixels_whole,
         B_strain_aug_fact = 0.15, min_dist_red_fact = 1/3,
         purge_interatomic_distance = True, purge_wrong_displacements = False):
@@ -1803,8 +1859,14 @@ def Distort_AtoModel_Region(
     Parameters
     ----------
     atom_models_filepath : path to the atomistic models
-    Dispx : array, x displacement field for the whole image computed with GPA
-    Dispy : array, y displacement field for the whole image computed with GPA
+    Disp_x : array, x displacement field for the crop, already in angstroms
+            as returned from the Make_Displacement_Maps_Continuous
+            that would return the shifted version in case it is needed, of
+            the displacement map directly in angstroms and contious
+    Disp_y : array, x displacement field for the crop, already in angstroms
+            as returned from the Make_Displacement_Maps_Continuous
+            that would return the shifted version in case it is needed, of
+            the displacement map directly in angstroms and contious
     Box_strain_pixels : box where to apply the strain fields to
         in format 
         Box_strain_pixels = [B_strain_y_i, B_strain_y_f, B_strain_x_i, B_strain_x_f] 
@@ -1846,28 +1908,30 @@ def Distort_AtoModel_Region(
             as we do not call this path if many files are to be analysed
 
     '''
-    
+    # From previous setting, which expected the whole displacements maps
+    # from the whole image, this was used like this cropping and convert nm to angs
     
     # Increase the box a certain factor to account for the displacements
     # that can happend at the edges of the box
     # At the very end this is reverted by having -B_strain_aug_fact
     # and filter the box with the atoms inside to have the final model
-    Box_strain_pixels = GPA_sp.Mod_GPA_RefRectangle(
-        Box_strain_pixels, B_strain_aug_fact)    
+    # Box_strain_pixels = GPA_sp.Mod_GPA_RefRectangle(
+    #     Box_strain_pixels, B_strain_aug_fact)    
     
-    #Disp_x = (Dispx[B2Y:B2Y+width2,B2X:B2X+height2]-Dispx[B2Y+Ref_point[1],B2X+Ref_point[0]])*pixsize
-    Disp_x = (Dispx[Box_strain_pixels[0]:Box_strain_pixels[1],
-                    Box_strain_pixels[2]:Box_strain_pixels[3]])*pixel_size_whole
+    # Disp_x = (Dispx[Box_strain_pixels[0]:Box_strain_pixels[1],
+    #                 Box_strain_pixels[2]:Box_strain_pixels[3]])*pixel_size_whole
     
-    Disp_y = (Dispy[Box_strain_pixels[0]:Box_strain_pixels[1],
-                    Box_strain_pixels[2]:Box_strain_pixels[3]])*pixel_size_whole
+    # Disp_y = (Dispy[Box_strain_pixels[0]:Box_strain_pixels[1],
+    #                 Box_strain_pixels[2]:Box_strain_pixels[3]])*pixel_size_whole
 
 
-    # !!! UNITS CHANGE (nm --> angstroms)
-    # The dispacement needs to be in the units of the atomic coordinates
-    # in the model, so in angstroms
-    Disp_x = Disp_x*10
-    Disp_y = Disp_y*10
+    # # !!! UNITS CHANGE (nm --> angstroms)
+    # # The dispacement needs to be in the units of the atomic coordinates
+    # # in the model, so in angstroms
+    # Disp_x = Disp_x*10
+    # Disp_y = Disp_y*10
+    
+    
     
     fig, ax = plt.subplots(1, 1, figsize=(10, 10))
     ax.imshow(Disp_x, cmap='jet')
@@ -1878,13 +1942,22 @@ def Distort_AtoModel_Region(
     plt.show()
     # profile along displacement image
     
-    profile_content = Disp_y[:, 75:125]
+    # profile_content = Disp_x[:, 75:125]
     
-    profile_av = np.mean(profile_content, axis = 1)
-    prof_x = np.arange(0, len(profile_av), 1)*pixel_size_whole*10
+    # profile_av = np.mean(profile_content, axis = 1)
+    # prof_x = np.arange(0, len(profile_av), 1)*pixel_size_whole*10
     
-    plt.plot(prof_x, profile_av)
-    plt.show()
+    # plt.plot(prof_x, profile_av)
+    # plt.show()
+
+    
+    # profile_content = Disp_y[:, 75:125]
+    
+    # profile_av = np.mean(profile_content, axis = 1)
+    # prof_x = np.arange(0, len(profile_av), 1)*pixel_size_whole*10
+    
+    # plt.plot(prof_x, profile_av)
+    # plt.show()
 
 
     # Adjust the box drawn in image coordiantes, to the box defined in the 
@@ -2704,6 +2777,690 @@ def Displace_Atoms_Portion(
     
     
     return model_displaced_path
+
+
+
+
+
+def Displacement_map_continous_shift(
+        displacement_map, pixel_size_whole, displace_thresh = 30):
+    '''
+    Main function that makes the displacement map continous breaking the
+    jump discontinuities by finding the region which is supposed to be the
+    least strained one, so smallest gradient in that area (gradient of displacement
+    is strain) is considered as the region to not shift, and the rest with a
+    bigger slope in absolute value, is what is gonna be shifted to make 
+    the map continous and address the intrinsec displacement 
+    found by different cell parameters
+
+    Parameters
+    ----------
+    displacement_map : 2d array displacment map already cut in the box, 
+            in angstroms, so the inputs will by disp_x and disp_y
+            so Make_Displacement_Maps_Continuous() function 
+            which is the one calling this function, inputs it already
+            cropped and in angstroms
+    pixel_size_whole: pixel size in nm
+    displace_thresh: displacement in angstroms below which we consider normal
+                and acceptable displacement, while for values larger
+                we consider that it is a jump discontinuity so we will
+                start balancing the values if found a displacement like this
+                from pixel to pixel in the vertical scanned direction 
+        
+    Returns
+    -------
+    new_shifted_displacement_map: 2d array with same shape as original 
+                        displacement_map, but if found discontinuities they
+                        should be readjusted to make it continous and if no
+                        discontinuity is found then the original map is returned
+                        immutable, like meshuggah
+    '''
+    
+    
+    displace_thresh = 30 # angstroms, more displacement is not correct and discontinuity
+
+    # store the cases where the reference region is before the 
+    # peak so 0 or, after the peak, so 1
+    referece_before_or_after = []
+    # store the displacement values before and after the shape to have 
+    # them as reference in case we do not have an initial reference
+    disp_first_val_before = []
+    disp_first_val_after = []
+    
+    # proceed with the scanning
+    for column in range(np.shape(displacement_map)[1]):
+        
+        column_disp_profile = displacement_map[:,column]
+        
+        # values in angtroms, positions from the image (relative to the crop
+        # so from 0 to FOV of crop)
+        distances_box_profile = np.arange(0, len(column_disp_profile), 1)*pixel_size_whole*10
+        
+        # first we detect the discontinuity and if so, we act consequently
+        # first derivative of curve
+        col_gradient_disp = np.gradient(column_disp_profile)
+        
+        # differences, so pixel i+1 - i, so len = N-1
+        col_diffs_disp = np.diff(column_disp_profile)
+        
+        # second derivative of curve
+        col_gradient2_disp = np.gradient(col_gradient_disp)
+        
+        # plt.plot(prof_x, column_disp_profile)
+        # plt.plot(prof_x[1:], col_diffs_disp)
+        # plt.plot(prof_x, col_gradient_disp)
+        # plt.plot(prof_x, col_gradient2_disp)
+        # plt.show()
+
+        
+        big_displacements_diffs = col_diffs_disp[np.abs(col_diffs_disp) > displace_thresh]
+        big_displacements_cords = distances_box_profile[1:][np.abs(col_diffs_disp) > displace_thresh]
+        
+        # the range of pixels is from the position where big_displacements_cords
+        # are found and for the previous one
+
+        
+        if len(big_displacements_cords) == 0:
+            # if no big displacment shift is found, then go to next iteration 
+            continue
+        
+        # indices where the big displacement is found
+        indexes_found_bigdisp = []
+        
+        for cord_found in big_displacements_cords:
+        
+            ind_found = np.where(distances_box_profile == cord_found)[0][0]
+            indexes_found_bigdisp.append(ind_found)
+        
+        
+        # add the index of the element below if exists
+        
+        indexes_found_bigdisp_inf = np.min(indexes_found_bigdisp)
+        # only add it if it is not 0, so it can be 1 or more, so 1-1 minimum 0
+        if indexes_found_bigdisp_inf > 0:
+            indexes_found_bigdisp.append(int(indexes_found_bigdisp_inf-1))
+        
+
+        # Here we extend the size of the interface where the displacment is 
+        # found to make it smoother, up to two indices below and above
+        # although it seems that this is not smoothing but producing a flat
+        # interface (flat or continous displacement) in that region
+        
+        # if already we find 0 in the array then we do not go down in indices
+        if 0 not in indexes_found_bigdisp:
+            # add min-1 if present
+            min_minus_1 = np.min(indexes_found_bigdisp) - 1
+            index_to_add = np.max([0, min_minus_1])
+            indexes_found_bigdisp.append(index_to_add)
+            
+            # if 0 not in indexes_found_bigdisp:
+            # # add min-2 if present
+            #     min_minus_2 = min_minus_1 - 1
+            #     index_to_add = np.max([0, min_minus_2])
+            #     indexes_found_bigdisp.append(index_to_add)
+                
+        # if already we find the last possible index in the array 
+        # then we do not go up in indices
+        if len(column_disp_profile) not in indexes_found_bigdisp:
+            # add min+1 if present
+            max_plus_1 = np.max(indexes_found_bigdisp) + 1
+            index_to_add = np.min([max_plus_1, len(column_disp_profile)])
+            indexes_found_bigdisp.append(index_to_add)
+            
+            # if len(column_disp_profile) not in indexes_found_bigdisp:
+            # # add min+2 if present
+            #     max_plus_2 = max_plus_1 + 1
+            #     index_to_add = np.min([max_plus_2, len(column_disp_profile)])
+            #     indexes_found_bigdisp.append(index_to_add)        
+        
+        
+        indexes_found_bigdisp = np.sort((np.asarray(indexes_found_bigdisp)))
+        
+        # get the gradient values before and after the peak if present
+        grad_before = col_gradient_disp[:np.min(indexes_found_bigdisp)]
+        grad_after = col_gradient_disp[np.max(indexes_found_bigdisp):]
+        # get the displacment values before and after the peak if present
+        disp_before = column_disp_profile[:np.min(indexes_found_bigdisp)]
+        disp_after = column_disp_profile[np.max(indexes_found_bigdisp):]
+        # Get the positions/distances where the displacement and gradient are 
+        # before and after the discontiuity, in case we want to plot         
+        distances_box_profile_before = distances_box_profile[:np.min(indexes_found_bigdisp)]
+        distances_box_profile_after = distances_box_profile[np.max(indexes_found_bigdisp):]
+        
+        # plt.plot(distances_box_profile_before, grad_before)
+        # plt.show()
+        # plt.plot(distances_box_profile_after, grad_after)
+        # plt.show()
+        
+        
+        if len(grad_before) == 0:
+            continue
+        if len(grad_after) == 0:
+            continue
+        
+        # get the average of the gradient values before and after
+        avg_grad_before = np.mean(grad_before)
+        avg_grad_after = np.mean(grad_after)
+        
+        avgs_bef_aft = [avg_grad_before, avg_grad_after]
+        # choosing the minimum index will give the position 0 if before, or
+        # 1 if after, obtaining the minimum gradient obtained in absolute 
+        # value, meaning the least strain present
+        reference_bef_aft = np.argmin(np.abs(avgs_bef_aft))
+        
+        referece_before_or_after.append(reference_bef_aft)
+        
+        # store the vals that would be used as reference if present
+        # in case we cannot stablish an initial shift before or after 
+        # in a diagonal interface that begins or ends in the middle of the FOV
+        disp_first_val_before.append(disp_before[-1])
+        disp_first_val_after.append(disp_after[0])
+        
+        
+    # If no peak was found along the map, then just break the process and return
+    # the same exact map, with no modifications in it    
+    if len(referece_before_or_after) == 0:
+        return displacement_map
+        
+    # else, so if at least 1 peak was found (only 1 would be strange actually,
+    # but not impossible maybe the interface appears at the very edge of 
+    # the image then it could happend, but in common scenarios more found)
+    # then do the correction and generate new displacement shifted map
+        
+    before_after, bef_aft_counts = np.unique(referece_before_or_after, return_counts=True) 
+    # get the average values of the before and after found vals
+    # to use as if there is no refrecen in the first steps of the process
+    disp_avg_first_val_before = np.mean(disp_first_val_before)
+    disp_avg_first_val_after = np.mean(disp_first_val_after)
+    
+    
+    # region 0 before or region 1 after to be chosen as the reference
+    # for later use as the shifting value, as the region identified will be
+    # the one to keep and the rest will shift to make it equal
+    # so keep the first value next to the peak in the region 
+    # before or after region_reference_bef_aft and shift accordingly
+    region_reference_bef_aft = before_after[np.argmax(bef_aft_counts)]
+    # Most common value 0 or 1 in referece_before_or_after
+    # shift is before or after and then use it as the reference 
+
+    # map with same shape as old to substitute the columsn once shifted
+    new_shifted_displacement_map = np.copy(displacement_map)
+            
+    # initialise the values if needed to None to set the basis and say
+    # that at the beginning no values is found until a curve with a peak exists
+    last_used_disp_before  = None
+    last_used_disp_after = None
+
+    
+    # proceed with the scanning
+    for column in range(np.shape(displacement_map)[1]):
+            
+        column_disp_profile = displacement_map[:,column]
+        
+        # values in angtroms, positions from the image (relative to the crop
+        # so from 0 to FOV of crop)
+        distances_box_profile = np.arange(0, len(column_disp_profile), 1)*pixel_size_whole*10
+        
+        # first we detect the discontinuity and if so, we act consequently
+        # first derivative of curve
+        col_gradient_disp = np.gradient(column_disp_profile)
+        
+        
+        # differences, so pixel i+1 - i, so len = N-1
+        col_diffs_disp = np.diff(column_disp_profile)
+        
+        
+        # second derivative of curve
+        col_gradient2_disp = np.gradient(col_gradient_disp)
+            
+            
+        big_displacements_diffs = col_diffs_disp[np.abs(col_diffs_disp) > displace_thresh]
+        big_displacements_cords = distances_box_profile[1:][np.abs(col_diffs_disp) > displace_thresh]
+        
+        # the range of pixels is from the position where big_displacements_cords
+        # are found and for the previous one
+
+        
+        if len(big_displacements_cords) == 0:
+            # if no big displacment shift is found, then 
+            continue
+
+
+
+        indexes_found_bigdisp = []
+        
+        for cord_found in big_displacements_cords:
+        
+            ind_found = np.where(distances_box_profile == cord_found)[0][0]
+            indexes_found_bigdisp.append(ind_found)
+        
+        # add the index of the element below if exists
+        
+        indexes_found_bigdisp_inf = np.min(indexes_found_bigdisp)
+        # only add it if it is not 0, so it can be 1 or more, so 1-1 minimum 0
+        if indexes_found_bigdisp_inf > 0:
+            indexes_found_bigdisp.append(int(indexes_found_bigdisp_inf-1))
+        
+
+        # Here we extend the size of the interface where the displacment is 
+        # found to make it smoother, up to two indices below and above
+        # although it seems that this is not smoothing but producing a flat
+        # interface (flat or continous displacement) in that region
+        
+        
+        # if already we find 0 in the array then we do not go down in indices
+        if 0 not in indexes_found_bigdisp:
+            # add min-1 if present
+            min_minus_1 = np.min(indexes_found_bigdisp) - 1
+            index_to_add = np.max([0, min_minus_1])
+            indexes_found_bigdisp.append(index_to_add)
+            
+            # if 0 not in indexes_found_bigdisp:
+            # # add min-2 if present
+            #     min_minus_2 = min_minus_1 - 1
+            #     index_to_add = np.max([0, min_minus_2])
+            #     indexes_found_bigdisp.append(index_to_add)
+                
+        # if already we find the last possible index in the array 
+        # then we do not go up in indices
+        if len(column_disp_profile) not in indexes_found_bigdisp:
+            # add min+1 if present
+            max_plus_1 = np.max(indexes_found_bigdisp) + 1
+            index_to_add = np.min([max_plus_1, len(column_disp_profile)])
+            indexes_found_bigdisp.append(index_to_add)
+            
+            # if len(column_disp_profile) not in indexes_found_bigdisp:
+            # # add min+2 if present
+            #     max_plus_2 = max_plus_1 + 1
+            #     index_to_add = np.min([max_plus_2, len(column_disp_profile)])
+            #     indexes_found_bigdisp.append(index_to_add)
+            
+        
+        # sort the array of indices that highlight the discontinuity
+        indexes_found_bigdisp = np.sort((np.asarray(indexes_found_bigdisp)))
+        
+        
+        # get the gradient values before and after the peak if present
+        grad_before = col_gradient_disp[:np.min(indexes_found_bigdisp)]
+        grad_after = col_gradient_disp[np.max(indexes_found_bigdisp):]
+
+
+        # get the displacment values before and after the peak if present
+        disp_before = column_disp_profile[:np.min(indexes_found_bigdisp)]
+        disp_after = column_disp_profile[np.max(indexes_found_bigdisp):]
+        # get the position values before and after the peak if present
+        pos_prof_before = distances_box_profile[:np.min(indexes_found_bigdisp)]
+        pos_prof_after = distances_box_profile[np.max(indexes_found_bigdisp):]
+
+
+        if region_reference_bef_aft == 0:
+            # if region as reference is before, we need to displace the after part
+            
+            # take into account that both arrays can be empty at some point
+            # so store a cache wiht the last used value as shifiting value
+            
+            if len(disp_before) == 0:
+                # If there is no content before the displacement, this means the 
+                # peak is found but the before does not continue, so use the previous
+                # found value, checking if there is a value used before for that
+                
+                if type(last_used_disp_before) == type(None):
+                    last_used_disp_before = disp_avg_first_val_before
+                    
+                # get the shift value out of this
+                disp_shift_val = disp_after[0] - last_used_disp_before
+                
+                    
+                
+            if len(disp_after) == 0:
+                # If there is no content after the displacement, this means the 
+                # peak is found but the after does not continue, so use the previous
+                # found value, checking if there is a value used before for that
+
+                if type(last_used_disp_after) == type(None):
+                    # if still no other value was used before, use the average 
+                    # of the ones found already
+                    last_used_disp_after = disp_avg_first_val_after
+                
+                # get the shift value out of this
+                disp_shift_val = last_used_disp_after - disp_before[-1] 
+                
+            else:
+                # if everything is in the normal case, so the peak is more or less
+                # in the middle of the image, then use the common process and
+                # store the values that were used in case they need to be used
+                # in the posterior case if len 0 appears in one of both
+                
+                last_used_disp_before  = disp_before[-1] 
+                last_used_disp_after = disp_after[0] 
+                disp_shift_val = disp_after[0] - disp_before[-1] 
+                
+            # shifted curve after the peak, given the reference found
+            shifted_grad_after = disp_after - disp_shift_val
+            
+            # so we need to unite the original before with the shifted after
+            # but in the middle we need to interpolate the coordinates of
+            # the jump to make the process continous
+            new_curve_to_interpolate = np.hstack((disp_before, shifted_grad_after))
+            xs_new_curve_to_interpolate = np.hstack((pos_prof_before, pos_prof_after))
+            
+            # and interpolate the y of values with the xs that are not attributed
+            xs_to_interpolate = distances_box_profile[np.min(indexes_found_bigdisp):np.max(indexes_found_bigdisp)]
+            # the result of the interpolation in the xs xs_to_interpolate
+            interpolated_disps = np.interp(
+                xs_to_interpolate, xs_new_curve_to_interpolate, new_curve_to_interpolate)
+            
+            
+            # get the new column values of displacement with the intermediate values
+            # got from the interpolation after the shifting
+            new_shifted_disp_col = np.hstack((disp_before, interpolated_disps, shifted_grad_after))
+            
+            
+            # update the column in the new displacemnt map
+            new_shifted_displacement_map[:,column] = new_shifted_disp_col
+            
+            
+            
+        if region_reference_bef_aft == 1:
+            # if region as reference is after, we need to displace the before part
+
+            
+            if len(disp_before) == 0:
+                # If there is no content before the displacement, this means the 
+                # peak is found but the before does not continue, so use the previous
+                # found value, checking if there is a value used before for that
+                if type(last_used_disp_before) == type(None):
+                    last_used_disp_before = disp_avg_first_val_before
+                    
+                # get the shift value out of this
+                disp_shift_val = last_used_disp_before - disp_after[0]
+
+                
+            if len(disp_after) == 0:
+                # If there is no content after the displacement, this means the 
+                # peak is found but the after does not continue, so use the previous
+                # found value, checking if there is a value used before for that
+                if type(last_used_disp_after) == type(None):
+                    # if still no other value was used before, use the average 
+                    # of the ones found already
+                    last_used_disp_after = disp_avg_first_val_after
+                
+                # get the shift value out of this
+                disp_shift_val = disp_before[-1]  - last_used_disp_after  
+
+
+
+            else:
+                # if everything is in the normal case, so the peak is more or less
+                # in the middle of the image, then use the common process and
+                # store the values that were used in case they need to be used
+                # in the posterior case if len 0 appears in one of both
+            
+                last_used_disp_before  = disp_before[-1] 
+                last_used_disp_after = disp_after[0] 
+                disp_shift_val = disp_before[-1] - disp_after[0]  
+            
+            # shifted curve before the peak, given the reference found
+            shifted_grad_before = disp_before - disp_shift_val
+            
+            # so we need to unite the shifted before with the original after
+            # but in the middle we need to interpolate the coordinates of
+            # the jump to make the process continous
+            new_curve_to_interpolate = np.hstack((shifted_grad_before, disp_after))
+            xs_new_curve_to_interpolate = np.hstack((pos_prof_before, pos_prof_after))
+            
+            # and interpolate the y of values with the xs that are not attributed
+            xs_to_interpolate = distances_box_profile[np.min(indexes_found_bigdisp):np.max(indexes_found_bigdisp)]
+            # the result of the interpolation in the xs xs_to_interpolate
+            interpolated_disps = np.interp(
+                xs_to_interpolate, xs_new_curve_to_interpolate, new_curve_to_interpolate)
+            
+            # get the new column values of displacement with the intermediate values
+            # got from the interpolation after the shifting
+            new_shifted_disp_col = np.hstack((shifted_grad_before, interpolated_disps, disp_after))
+            
+            # update the column in the new displacemnt map
+            new_shifted_displacement_map[:,column] = new_shifted_disp_col
+        
+        
+    return new_shifted_displacement_map
+
+
+
+def Make_Displacement_Maps_Continuous(
+        Dispx, Dispy, Box_strain_pixels, pixel_size_whole, 
+        displace_thresh = 30, show_maps_profiles = False):
+    '''
+    Function coordinating and prepearing the displacement maps conversion 
+    into continous functions
+    It needs the two displacements maps in both directions, the ones in nm and 
+    full maps from the whole image, where they are cut, so box to create 
+    the model out of.
+    The jump discontinuity is considered if the displacement difference from
+    one pixel to its consecutive is larger than the displace_thresh, which
+    can be fixed or left as a function of the GPA resolution (a fraction
+    of the distance that separates the spots found as epitaxial spots)
+
+    Parameters
+    ----------
+    Dispx : 2d array, displacement map in x direction, in nm, and of the whole image
+    Dispy : 2d array, displacement map in y direction, in nm, and of the whole image
+    Box_strain_pixels : region where the atomistic model is taken, so box in units
+                        of pixels relative to the whole image, in format like 
+            Box_strain_pixels = [B_strain_y_i, B_strain_y_f, B_strain_x_i, B_strain_x_f] 
+    pixel_size_whole : pixel size of the whole image, in nm
+    displace_thresh : displacement in angstroms below which we consider normal
+                and acceptable displacement, while for values larger
+                we consider that it is a jump discontinuity so we will
+                start balancing the values if found a displacement like this
+                from pixel to pixel in the vertical scanned direction 
+         The default is 30.
+    show_maps_profiles : bool to determine whether to plot or not
+                    the displacement maps and their vertical profiles
+                    both before and after the shifting
+        The default is False.
+
+    Returns
+    -------
+    new_Disp_x : 2d array map of the x displacement map after shifting it
+    new_Disp_y : 2d array map of the y displacement map after shifting it
+
+    '''
+    
+    # From the whole displacement maps in nm (unit of the pixel size)
+    # convert them into the cropped version of the map and in angstroms
+    Disp_x = (Dispx[Box_strain_pixels[0]:Box_strain_pixels[1],
+                    Box_strain_pixels[2]:Box_strain_pixels[3]])*pixel_size_whole
+
+    Disp_y = (Dispy[Box_strain_pixels[0]:Box_strain_pixels[1],
+                    Box_strain_pixels[2]:Box_strain_pixels[3]])*pixel_size_whole
+    # !!! UNITS CHANGE (nm --> angstroms)
+    # The dispacement needs to be in the units of the atomic coordinates
+    # in the model, so in angstroms
+    Disp_x = Disp_x*10
+    Disp_y = Disp_y*10
+    
+    
+    # Plot info about the original map
+    if show_maps_profiles == True:
+        fig, ax = plt.subplots(1, 1, figsize=(10, 10))
+        ax.imshow(Disp_x, cmap='jet')
+        ax.set_title('Disp_x')
+        plt.show()
+    
+        fig, ax = plt.subplots(1, 1, figsize=(10, 10))
+        ax.imshow(Disp_y, cmap='jet')
+        ax.set_title('Disp_y')
+        plt.show()
+    
+        # plot profiles crossing the map in the middle vertically
+        profile_content = Disp_x[:, int(np.shape(Disp_x)[1]/2):int(np.shape(Disp_x)[1]/2)+1]
+        
+        profile_av = np.mean(profile_content, axis = 1)
+        prof_x = np.arange(0, len(profile_av), 1)*pixel_size_whole*10
+        
+        plt.plot(prof_x, profile_av)
+        plt.title('Vertical profile (top to bottom) of displacement map x')
+        plt.show()
+        
+        
+        gradient_disp_x = np.gradient(profile_av)
+        
+        plt.plot(prof_x, gradient_disp_x)
+        plt.title('Vertical profile (top to bottom) of gradient of displacement map x')
+        plt.show()
+        
+        # gradient_disp_x = np.gradient(gradient_disp_x)
+        
+        # plt.plot(prof_x, gradient_disp_x)
+        # plt.show()
+        
+        
+        profile_content = Disp_y[:, int(np.shape(Disp_y)[1]/2):int(np.shape(Disp_y)[1]/2)+1]
+        
+        profile_av = np.mean(profile_content, axis = 1)
+        
+        plt.plot(prof_x, profile_av)
+        plt.title('Vertical profile (top to bottom) of displacement map y')
+        plt.show()
+        
+        gradient_disp_y = np.gradient(profile_av)
+        
+        plt.plot(prof_x, gradient_disp_y)
+        plt.title('Vertical profile (top to bottom) of gradient of displacement map y')
+        plt.show()    
+    
+    
+    # Compute the actual displacements maps with the shifts if there        
+    # new_shifted_displacement_map = Displacement_map_shift(
+    #     displacement_map)        
+    new_Disp_x = Displacement_map_continous_shift(
+        Disp_x, pixel_size_whole, displace_thresh)        
+    new_Disp_y = Displacement_map_continous_shift(
+        Disp_y, pixel_size_whole, displace_thresh)        
+        
+    
+    # Plot info about the modified shifted map
+    if show_maps_profiles == True:
+        fig, ax = plt.subplots(1, 1, figsize=(10, 10))
+        ax.imshow(new_Disp_x, cmap='jet')
+        ax.set_title('Disp_x, after shift')
+        plt.show()
+    
+        fig, ax = plt.subplots(1, 1, figsize=(10, 10))
+        ax.imshow(new_Disp_y, cmap='jet')
+        ax.set_title('Disp_y, after shift')
+        plt.show()
+    
+    
+        # plot profiles crossing the map in the middle vertically
+        profile_content = new_Disp_x[:, int(np.shape(new_Disp_x)[1]/2):int(np.shape(new_Disp_x)[1]/2)+1]
+        
+        profile_av = np.mean(profile_content, axis = 1)
+        prof_x = np.arange(0, len(profile_av), 1)*pixel_size_whole*10
+        
+        plt.plot(prof_x, profile_av)
+        plt.title('Vertical profile (top to bottom) of shifted displacement map x')
+        plt.show()
+    
+        gradient_disp_x = np.gradient(profile_av)
+        
+        plt.plot(prof_x, gradient_disp_x)
+        plt.title('Vertical profile (top to bottom) of gradient of shifted displacement map x')
+        plt.show()
+        
+        
+        profile_content = new_Disp_y[:, int(np.shape(new_Disp_y)[1]/2):int(np.shape(new_Disp_y)[1]/2)+1]
+        
+        profile_av = np.mean(profile_content, axis = 1)
+        
+        plt.plot(prof_x, profile_av)
+        plt.title('Vertical profile (top to bottom) of shifted displacement map y')
+        plt.show()
+        
+        gradient_disp_y = np.gradient(profile_av)
+        
+        plt.plot(prof_x, gradient_disp_y)
+        plt.title('Vertical profile (top to bottom) of gradient of shifted displacement map y')
+        plt.show()    
+            
+        
+        # probably needs smoothing before the derivative
+        
+    
+    return new_Disp_x, new_Disp_y
+
+
+
+def Print_DispMap_VertProfiles(
+        displacement_map, pixel_size_whole):
+    '''
+    Print all the vertical profiles going through the displacment map
+
+    Parameters
+    ----------
+    displacement_map : map to print its profiles
+    pixel_size_whole : pixel size in nm
+
+    Returns
+    -------
+    None.
+
+    '''
+    
+
+    for column in range(np.shape(displacement_map)[1]):
+        
+        column_disp_profile = displacement_map[:,column]
+        # values in angtroms, positions from the image (relative to the crop
+        # so from 0 to FOV of crop)
+        distances_box_profile = np.arange(0, len(column_disp_profile), 1)*pixel_size_whole*10
+        
+        # first we detect the discontinuity and if so, we act consequently
+        # first derivative of curve
+        col_gradient_disp = np.gradient(column_disp_profile)
+        
+        # differences, so pixel i+1 - i, so len = N-1
+        col_diffs_disp = np.diff(column_disp_profile)
+        
+        # second derivative of curve
+        col_gradient2_disp = np.gradient(col_gradient_disp)
+        
+        plt.plot(distances_box_profile, column_disp_profile)
+        # plt.plot(prof_x[1:], col_diffs_disp)
+        plt.plot(distances_box_profile, col_gradient_disp)
+        # plt.plot(prof_x, col_gradient2_disp)
+        plt.show()    
+
+
+    # plot horizontal profiles along the x direction before and after the correction
+    
+    # before the correction 1 plot on upper half, 1 plot on half below
+    # after the correction 1 plot on upper half, 1 plot on half below
+    
+    
+    # upper_prof_old = Disp_x[50,:]
+    # distances_box_profile = np.arange(0, len(upper_prof_old), 1)*pixel_size_whole*10
+    
+    # downer_prof_old = Disp_x[350,:]
+    
+    
+    # upper_prof_new = new_Disp_x[50,:]
+    
+    # downer_prof_new = new_Disp_x[350,:]
+    
+    
+    # plt.plot(distances_box_profile, upper_prof_old)
+    # plt.plot(distances_box_profile, upper_prof_new)
+    # plt.show()
+    
+    
+    # plt.plot(distances_box_profile, downer_prof_old)
+    # plt.plot(distances_box_profile, downer_prof_new)
+    # plt.show()
+    
+
+
 
 
 
