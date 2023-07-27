@@ -4680,7 +4680,14 @@ def Adjust_in_surface_plane_rotation(
         # compute how similar these two angles are
         assign_2nd_angles_difference = final_in_surf_plane_rotation_2_1 - final_in_surf_plane_rotation_2_2
 
-        
+        # ensure the differences are between -360 and 360, not included
+        if abs(assign_1st_angles_difference) >= 360:
+            assign_1st_angles_difference = 360*(assign_1st_angles_difference/360 - np.sign(assign_1st_angles_difference)*np.floor(abs(assign_1st_angles_difference/360)))
+            
+        if abs(assign_2nd_angles_difference) >= 360:
+            assign_2nd_angles_difference = 360*(assign_2nd_angles_difference/360 - np.sign(assign_2nd_angles_difference)*np.floor(abs(assign_2nd_angles_difference/360)))
+
+        # get the smalles of the differenecs as it will be the most reasonable rotation
         min_angle_diff_index = np.argmin(np.abs(np.array([assign_1st_angles_difference, assign_2nd_angles_difference])))
 
         # if the minimum difference is from the first assignation
@@ -7190,8 +7197,9 @@ def Build_DeviceSupercell_Virtual_To_Distort(
 # cell_filepath=r'E:\Arxius varis\PhD\2nd_year\Code\unit_cells\ni.cif'
 # cell_filepath=r'E:\Arxius varis\PhD\2nd_year\Code\unit_cells\ge_fd-3ms.cif'
 # cell_filepath=r'E:\Arxius varis\PhD\2nd_year\Code\unit_cells\insb_full.cif'
-# cell_filepath=r'E:\Arxius varis\PhD\3rd_year\Code\unit_cells\InSb.cif'
 # cell_filepath=r'E:\Arxius varis\PhD\3rd_year\Code\unit_cells\insb_mid.cif'
+# cell_filepath = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_InP_TransvNW_6\Results_InP-InSb6\model_cells\InSb_1_v.cif'
+# cell_filepath = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_InP_TransvNW_6\Results_InP-InSb6\model_cells\InSb.cif'
 
 
 # # load the cif file of the unit cell
