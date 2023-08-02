@@ -576,9 +576,8 @@ Disp_x, Disp_y = GPA_AtoMod.Make_Displacement_Maps_Continuous(
     displace_thresh = 30, show_maps_profiles = True)
 
 
-# Print_DispMap_VertProfiles(
-#     new_Disp_x, pixel_size_whole)
-
+# GPA_AtoMod.Print_DispMap_VertProfiles(
+#     Disp_x, pixel_size_whole)
 
 
 
@@ -734,7 +733,6 @@ input_FEM_filename = FEMBuild.Extract_FEM_input_parameters(
 
 
 
-
 #%%
 
 
@@ -825,38 +823,6 @@ else:
         total_pixels_whole, atomregmodel_path_final)
 
 
-#%%
 '''
-Manual atom displacement
-
-
-
-
-B_strain_width = 400
-B_strain_height = 400
-B_strain_y_i = 1000 + 300
-B_strain_y_f = B_strain_y_i + B_strain_height
-B_strain_x_i = 250
-B_strain_x_f = B_strain_x_i + B_strain_width
-
-Box_strain_pixels = [B_strain_y_i, B_strain_y_f, B_strain_x_i, B_strain_x_f] 
-
-region_to_strain_atomcords = np.array([Box_strain_pixels[2]*pixel_size_whole,
-                                       (total_pixels_whole-Box_strain_pixels[1])*pixel_size_whole,
-                                       Box_strain_pixels[3]*pixel_size_whole,
-                                       (total_pixels_whole-Box_strain_pixels[0])*pixel_size_whole])
-# from nm to angstroms
-region_to_strain_atomcords = region_to_strain_atomcords*10
-
-# atomodel_filepath = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_InP_TransvNW_3\Results_nanowire3_dm3\model_cells\nanowire3_dm3_strained\region_cut_strained_purged_Col_FINAL_cut.xyz'
-
-for InSb_InP_TransvNW_3, these params works almost well, although not
-uniform displacement so never 100% correct
-displacement_vector = [-77, 120, 0]
-rotation_deg = -5.2
-
-model_displaced_path = GPA_AtoMod.Displace_Atoms_Portion(
-    path_finalcut_strainedmodel, region_to_strain_atomcords, 
-    displacement_vector, rotation_deg)
-
+END
 '''
