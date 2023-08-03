@@ -2033,7 +2033,7 @@ def Distort_AtoModel_Region(
         # Displace the atom list
         list_of_errors_displ = Displace(
             region_to_strain_atom_list, Disp_y, -Disp_x, region_to_strain_atomcords, 
-            rate=0.8, Max_try=50)    
+            rate=0.3, Max_try=130)    
         
         # Purge the list of incorrectly displaced atoms by first getting just the 
         # atoms that are within the box (in case a displacement brought some outside)
@@ -3243,18 +3243,18 @@ def Displacement_map_continous_shift(
     shifts_calc_x = np.arange(0, len(column_disp_profile), 1)
 
 
-    plt.plot(shifts_calc_x, np.asarray(shifts_calc))
-    plt.title('Shifts')
-    plt.show()
+    # plt.plot(shifts_calc_x, np.asarray(shifts_calc))
+    # plt.title('Shifts')
+    # plt.show()
     
-    plt.plot(shifts_calc_x, np.asarray(grads_before_last))
-    plt.title('grads_before_last')
+    # plt.plot(shifts_calc_x, np.asarray(grads_before_last))
+    # plt.title('grads_before_last')
 
-    plt.show()
+    # plt.show()
     
-    plt.plot(shifts_calc_x, np.asarray(grads_after_first))
-    plt.title('grads_after_first')
-    plt.show()
+    # plt.plot(shifts_calc_x, np.asarray(grads_after_first))
+    # plt.title('grads_after_first')
+    # plt.show()
         
         
     return new_shifted_displacement_map
@@ -4001,13 +4001,15 @@ def Make_Displacement_Maps_Continuous(
     # Plot info about the original map
     if show_maps_profiles == True:
         fig, ax = plt.subplots(1, 1, figsize=(10, 10))
-        ax.imshow(Disp_x, cmap='jet')
+        im = ax.imshow(Disp_x, cmap='jet')
         ax.set_title('Disp_x')
+        fig.colorbar(im, ax=ax, shrink=1)
         plt.show()
     
         fig, ax = plt.subplots(1, 1, figsize=(10, 10))
-        ax.imshow(Disp_y, cmap='jet')
+        im = ax.imshow(Disp_y, cmap='jet')
         ax.set_title('Disp_y')
+        fig.colorbar(im, ax=ax, shrink=1)
         plt.show()
     
         # plot profiles crossing the map in the middle vertically
@@ -4071,13 +4073,15 @@ def Make_Displacement_Maps_Continuous(
     # Plot info about the modified shifted map
     if show_maps_profiles == True:
         fig, ax = plt.subplots(1, 1, figsize=(10, 10))
-        ax.imshow(new_Disp_x, cmap='jet')
+        im = ax.imshow(new_Disp_x, cmap='jet')
         ax.set_title('Disp_x, after shift')
+        fig.colorbar(im, ax=ax, shrink=1)
         plt.show()
     
         fig, ax = plt.subplots(1, 1, figsize=(10, 10))
-        ax.imshow(new_Disp_y, cmap='jet')
+        im = ax.imshow(new_Disp_y, cmap='jet')
         ax.set_title('Disp_y, after shift')
+        fig.colorbar(im, ax=ax, shrink=1)
         plt.show()
     
     
