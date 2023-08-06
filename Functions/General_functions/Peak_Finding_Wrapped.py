@@ -839,7 +839,7 @@ def Peak_Detection_Multimodal_Wrapped(
     
     # Find the pixels of the freqs by CNN
     # !!! condition set because my PC ram cannot handle 2k CNN loading
-    if total_pixels_crop < 1024:
+    if total_pixels_crop < 4024:
         pixels_of_peaks_CNN = Peak_Detection_Wrapped_Standarised_CNN(
             image_crop_hs_signal, FFT_image_array_No_Log, FFT_image_array, 
             total_pixels_crop, crop_FOV, visualisation = False)  
