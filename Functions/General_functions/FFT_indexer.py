@@ -436,8 +436,8 @@ def Colour_Mix_BraggFilteredPhases(
     '''
     
     # phases_per_crop =  indicates how many phases we want to retrieve
-    list_colours = ['Reds', 'Greens', 'Blues', 'Spring', 'Wistia', 'Oranges', 
-                    'Purples', 'YlOrBr', 'YlOrRd', 'OrRd', 'PuRd', 'RdPu', 
+    list_colours = ['Reds', 'Greens', 'Blues', 'Oranges', 'Purples', 'spring',   
+                     'Wistia', 'YlOrBr', 'YlOrRd', 'OrRd', 'PuRd', 'RdPu', 
                     'BuPu','GnBu', 'PuBu', 'YlGnBu', 'PuBuGn', 'BuGn', 'YlGn']
 
     

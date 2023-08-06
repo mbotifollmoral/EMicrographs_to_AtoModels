@@ -74,21 +74,7 @@ tooLow_FOV = 1500 #nm, is a FOV which is too
 tol=0.05 #tolerance: how different from theoretical values the previous values can be to get good output
 min_d=0.5    #minimum interplanar distance computed in the diffraction
 forbidden = True  #Include (True) or not (False) the forbidden reflections
-crop_setting = 'crop' # 'mask' or 'crop', FFT from the mask of the segmentation or from crop inside
-
-
-# Hyperparameters to select the box in which the atomistic model and strain
-# transfer is going to be calculated
-B_strain_width = 400
-B_strain_height = 400
-B_strain_y_i = 1000
-B_strain_y_f = B_strain_y_i + B_strain_height
-B_strain_x_i = 250
-B_strain_x_f = B_strain_x_i + B_strain_width
-
-# Box formatting of the 
-Box_strain_pixels = [B_strain_y_i, B_strain_y_f, B_strain_x_i, B_strain_x_f] 
-
+crop_setting = 'mask' # 'mask' or 'crop', FFT from the mask of the segmentation or from crop inside
 
 
 
@@ -105,9 +91,9 @@ Template matching and generation of the relative coordinates per image over the 
 # dataset_system_path_name = filedialog.askdirectory(parent=root,initialdir="/",title='Folder with the images dataset')
 
 dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_InP_TransvNW_6\Micrographs\\'
-dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\GeQW2\Micrographs\\'
 dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_Sn_VLS2\Micrographs\\'
 dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_InP_TransvNW_3\Micrographs\\'
+dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\GeQW2\Micrographs\\'
 
 
 # Browse the images in the folder and also calibrate
@@ -144,6 +130,12 @@ relative_positions = HighToLowTM.Coordinate_system_Calculation(
 # Convert the lists into flat arrays to correlate 1 to 1 images, relative positions and pixel sizes
 flat_images_in_dataset_by_pixel_size, relative_positions, flat_pixel_sizes = HighToLowTM.Images_Position_PixelSizes_Arrays(
     images_in_dataset_by_pixel_size, relative_positions, pixel_sizes)
+
+# Plot original image (first image only, for single image version)
+fig, ax = plt.subplots(1, 1, figsize=(15, 15))
+im = ax.imshow(flat_images_in_dataset_by_pixel_size[0].image_arraynp_st, cmap='Greys_r')
+plt.show()
+
 
 
 #%%
@@ -317,12 +309,14 @@ for crop_index_i in range(1, analysed_image_only.crop_index):
         fft_info_data[crop_key_for_dict] = FFT_indexer.Collect_data(
             FFT_image_array, refined_pixels, spots_int_reference, crop_list_refined_cryst_spots)
 
-                    
-
-FFT_indexer.fft_info_data = fft_info_data
-# Open the app based on the info in fft_info_data
-
-FFT_indexer.main()
+# Call the interactive plot function
+if len(fft_info_data) == 0:
+    raise Exception('No phases to index')                   
+else:
+    FFT_indexer.fft_info_data = fft_info_data
+    # Open the app based on the info in fft_info_data
+    
+    FFT_indexer.main()
 
    
 #%%
@@ -548,6 +542,21 @@ for result_image_name, result_image_array in zip(['exx','eyy','exy','eyx','rot',
 Strain correction profile displacement continous maker
 '''
 
+
+# Hyperparameters to select the box in which the atomistic model and strain
+# transfer is going to be calculated
+B_strain_width = total_pixels_whole
+B_strain_height = total_pixels_whole
+B_strain_y_i = 0
+B_strain_y_f = B_strain_y_i + B_strain_height
+B_strain_x_i = 0
+B_strain_x_f = B_strain_x_i + B_strain_width
+
+# Box formatting of the 
+Box_strain_pixels = [B_strain_y_i, B_strain_y_f, B_strain_x_i, B_strain_x_f] 
+
+
+
 # Displace_thresh could be a fragment of the GPA resooution, as if found a 
 # resolution that is differnet frm the 4nm, so meaning the GPA resolution was
 # found to be with a nother spot that is at same orientation,
@@ -600,7 +609,7 @@ general_bragg_filterings = FFT_indexer.Indexed_FFT_BraggFiltering(
 phases_per_crop = 1
 # Plot the Bragg filtered images
 FFT_indexer.Colour_Mix_BraggFilteredPhases(
-    image_in_dataset_whole, general_bragg_filterings, phases_per_crop = 1)
+    image_in_dataset_whole, general_bragg_filterings, phases_per_crop = phases_per_crop)
 
 
 
@@ -681,9 +690,8 @@ paths_to_virt_ucells, scored_spot_pairs_found, scaled_cords_spots = GPA_AtoMod.B
 
 
 #%%
-
 '''
-Base atomistic model builder
+FEM model input file generator
 '''
 
 # from the segmented image, skip some contours to smooth the global contour down
@@ -696,6 +704,25 @@ conts_vertx_per_region = Segment.Relative_Vertexs_Contours(
     images_segmented[0], conts_vertx_per_region_skept, 
     relative_positions_to_segment[0], pixel_sizes_to_segment[0])
 
+# Whether to include or not the regions where no crystal is found
+# False to include regions where no crystal was found
+FEM_only_crystals = True
+
+FEM_models_filepath = FEMBuild.Build_FEM_gds(
+    analysed_image_only, conts_vertx_per_region, 
+    model_cells_filepath, only_crystalline = FEM_only_crystals)
+
+
+input_FEM_filename = FEMBuild.Extract_FEM_input_parameters(
+        analysed_image_only, model_cells_filepath, 
+        only_crystalline = FEM_only_crystals)
+
+
+#%%
+
+'''
+Base atomistic model builder
+'''
 
 z_thickness_model = 1.3 # nm
 
@@ -710,26 +737,6 @@ atom_models_filepath, labels_equally_oriented_as_ref = AtomBuild.Build_DeviceSup
     analysed_image_only, model_cells_filepath, z_thickness_model, 
     conts_vertx_per_region, label_of_GPA_ref, best_GPA_ref_spot_pair, 
     paths_to_virt_ucells, scored_spot_pairs_found, scaled_cords_spots)
-
-
-
-#%%
-'''
-FEM model input file generator
-'''
-
-# Whether to include or not the regions where no crystal is found
-# False to include regions where no crystal was found
-FEM_only_crystals = True
-
-FEM_models_filepath = FEMBuild.Build_FEM_gds(
-    analysed_image_only, conts_vertx_per_region, 
-    model_cells_filepath, only_crystalline = FEM_only_crystals)
-
-
-input_FEM_filename = FEMBuild.Extract_FEM_input_parameters(
-        analysed_image_only, model_cells_filepath, 
-        only_crystalline = FEM_only_crystals)
 
 
 

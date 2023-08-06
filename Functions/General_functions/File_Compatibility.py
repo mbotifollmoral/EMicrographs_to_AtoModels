@@ -58,19 +58,25 @@ def ACE_to_uce(
         
         for line in file:
             words=line.split()
+
             if words[-1]=='NonEq.':
                 atoms.append(words[0]) 
                 atoms[-1]+='   '+str(asedata.atomic_numbers[atoms[-1]])
                 for i in range(3):
                     division=words[i+2].find('/')
                     if division>-1:
-                        if line==file[0]:
-                            coordinates0[i]=(float(words[i+2][:division])/float(words[i+2][division+1:]))
-                        coordinates[i]=(float(words[i+2][:division])/float(words[i+2][division+1:]))-coordinates0[i]
+                        # if line==file[0]:
+                        #     coordinates0[i]=(float(words[i+2][:division])/float(words[i+2][division+1:]))
+                        #     print('coordinates0[i]')
+                        #     print(coordinates0[i])
+                        # coordinates[i]=(float(words[i+2][:division])/float(words[i+2][division+1:]))-coordinates0[i]
+                        coordinates[i]=(float(words[i+2][:division])/float(words[i+2][division+1:]))
                     else:
-                        if line==file[0]:
-                            coordinates0[i]=float(words[i+2])
-                        coordinates[i]=float(words[i+2])-coordinates0[i] 
+                        # if line==file[0]:
+                        #     coordinates0[i]=float(words[i+2])
+                        # coordinates[i]=float(words[i+2])-coordinates0[i] 
+                        coordinates[i]=float(words[i+2])
+                    
                     atoms[-1]+='   '+str(coordinates[i]) 
                 atoms[-1]+='   '+words[-2]+'   0.075   0'
                 
