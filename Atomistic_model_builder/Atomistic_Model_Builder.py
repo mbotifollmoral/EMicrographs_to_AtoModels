@@ -5374,10 +5374,11 @@ def Find_plane_pointing_to_final_cartesian_x_axis(
     # n times the norm of the new vector is bigger than the one from hkl1
     n = 10
     # iterate through different n with try and except if nans are generated
+    print([u,v,w])
     for n in np.arange(10,100, 1):
             
         [A,B,C] = np.dot(plane_found_use, reciprocal_metric_tensor)                
-        
+        print([A,B,C])
         # g from plane found to use norm squared
         gf_norm2 = np.dot(np.dot(plane_found_use, reciprocal_metric_tensor), plane_found_use)
         
@@ -5696,11 +5697,82 @@ def Find_plane_pointing_to_final_cartesian_x_axis(
                 
                 hx_1 = M + N*lx_1
                 hx_2 = M + N*lx_2
+                
+                
+            elif (A == B and u == v) or (B*u == A*v):
+                # for zone axes type [u,u,w]
+                if C== 0 or abs(C) < 1e-15:
+                    
+                    T = u/w
+                    W = u/w
+                    
+                    M = (n*gf_norm2*np.cos((np.pi/180)*angle_exp_use))/(A)
+                    Q = -1
+                    
+                    Z = M*W
+                    Y = (T + Q*W)
+                    
+                    F = (M**2)*g4 + Z*M*(g7+g5) + (Z**2)*g8 - gf_norm2*(n**2)
+                    E = M*(g3+g1) + Z*(g6+g2) + 2*M*Q*g4 + 2*Q*(g7+g5) + Y*M*(g7+g5) + 2*Z*Y*g8
+                    D = g0 + Q*(g3+g1) + Y*(g6+g2) + (Q**2)*g4 + Y*Q*(g7+g5) + (Y**2)*g8
+
+                    hx_1 = (-E+np.sqrt((E**2)-4*D*F))/(2*D)
+                    hx_2 = (-E-np.sqrt((E**2)-4*D*F))/(2*D)
+
+                    kx_1 = M + Q*hx_1
+                    kx_2 = M + Q*hx_2
+                    
+                    lx_1 = Z + Y*hx_1
+                    lx_2 = Z + Y*hx_2
+                    
+                    
+                elif w == 0:
+                    
+                    lx_1 = (n*gf_norm2*np.cos((np.pi/180)*angle_exp_use))/(C)
+                    lx_2 = (n*gf_norm2*np.cos((np.pi/180)*angle_exp_use))/(C)
+                    
+                    F = (lx_1**2)*g8 - gf_norm2*(n**2)
+                    E = -lx_1*(g6+g2) + lx_1*(g7+g5)
+                    D = g0 - (g3+g1) + g4
+                    
+                    kx_1 = (-E+np.sqrt((E**2)-4*D*F))/(2*D)
+                    kx_2 = (-E-np.sqrt((E**2)-4*D*F))/(2*D)
+                
+                    hx_1 = -kx_1
+                    hx_2 = -kx_2
+                
+                
+                else:
+                
+                    T = u/w
+                    W = u/w
+                    
+                    S = (n*gf_norm2*np.cos((np.pi/180)*angle_exp_use))/(A+C*T)
+                    H = -(C*W+A)/(A+C*T)
+                    
+                    R = S*T
+                    P = H*T+W
+                    
+                    F = (S**2)*g0 + R*S*g6 + R*S*g2 + (R**2)*g8 - gf_norm2*(n**2)
+                    E = 2*H*S*g0 + S*g3 + S*g1 + R*H*g6 + P*S*g6 + R*H*g2 + P*S*g2 + R*g7 + R*g5 + 2*R*P*g8
+                    D = (H**2)*g0 + H*g3 + H*g1 + P*H*g6 + P*H*g2 + g4 + P*g7 + P*g5 + (P**2)*g8
+                    
+                    
+                    kx_1 = (-E+np.sqrt((E**2)-4*D*F))/(2*D)
+                    kx_2 = (-E-np.sqrt((E**2)-4*D*F))/(2*D)
+                    
+                    hx_1 = S + H*kx_1
+                    hx_2 = S + H*kx_2
+                    
+                    lx_1 = R + P*kx_1
+                    lx_2 = R + P*kx_2
+                    
+                
     
             else:
             
                 
-                # complete general version for any axis
+                # complete general version for any axis when not a exception
                 R = (u/(B*u-A*v))*n*gf_norm2*np.cos((np.pi/180)*angle_exp_use)
                 P = (A*w-C*u)/(B*u-A*v)
                 
@@ -5731,6 +5803,9 @@ def Find_plane_pointing_to_final_cartesian_x_axis(
         
     plane_1_in_x = [hx_1, kx_1, lx_1]
     plane_2_in_x = [hx_2, kx_2, lx_2]
+    print('plane_1_in_x')
+    print(plane_1_in_x)
+    
     
     # force the values to be integers, and be the smalles possible
 
