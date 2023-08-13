@@ -5374,11 +5374,9 @@ def Find_plane_pointing_to_final_cartesian_x_axis(
     # n times the norm of the new vector is bigger than the one from hkl1
     n = 10
     # iterate through different n with try and except if nans are generated
-    print([u,v,w])
     for n in np.arange(10,100, 1):
             
         [A,B,C] = np.dot(plane_found_use, reciprocal_metric_tensor)                
-        print([A,B,C])
         # g from plane found to use norm squared
         gf_norm2 = np.dot(np.dot(plane_found_use, reciprocal_metric_tensor), plane_found_use)
         
@@ -5803,9 +5801,6 @@ def Find_plane_pointing_to_final_cartesian_x_axis(
         
     plane_1_in_x = [hx_1, kx_1, lx_1]
     plane_2_in_x = [hx_2, kx_2, lx_2]
-    print('plane_1_in_x')
-    print(plane_1_in_x)
-    
     
     # force the values to be integers, and be the smalles possible
 
