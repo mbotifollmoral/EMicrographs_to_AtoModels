@@ -74,8 +74,8 @@ tooLow_FOV = 1500 #nm, is a FOV which is too
 tol=0.05 #tolerance: how different from theoretical values the previous values can be to get good output
 min_d=0.5    #minimum interplanar distance computed in the diffraction
 forbidden = True  #Include (True) or not (False) the forbidden reflections
-crop_setting = 'mask' # 'mask' or 'crop', FFT from the mask of the segmentation or from crop inside
-
+segm_setting = 'contour'  # Setting to define if use SAM segm, 'SAM', or contour, else
+crop_setting = 'crop' # 'mask' or 'crop', FFT from the mask of the segmentation or from crop inside
 
 
 #%%
@@ -93,7 +93,6 @@ Template matching and generation of the relative coordinates per image over the 
 dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_InP_TransvNW_6\Micrographs\\'
 dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_Sn_VLS2\Micrographs\\'
 dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_InP_TransvNW_3\Micrographs\\'
-dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\GeQW2\Micrographs\\'
 
 
 # Browse the images in the folder and also calibrate
@@ -153,7 +152,8 @@ images_to_segment, relative_positions_to_segment, pixel_sizes_to_segment = SegmW
 #     images_to_segment, relative_positions_to_segment, pixel_sizes_to_segment)
 
 images_segmented, conts_vertxs_per_region_segmented = SegmWrap.Segment_Images_ContourBased(
-    images_to_segment, relative_positions_to_segment, pixel_sizes_to_segment)
+    images_to_segment, relative_positions_to_segment, 
+    pixel_sizes_to_segment, segm_setting = segm_setting)
 
 
 #%%
@@ -606,7 +606,7 @@ general_bragg_filterings = FFT_indexer.Indexed_FFT_BraggFiltering(
     analysed_image_only, image_in_dataset_whole, bragg_mask_size)
 
 # !!! Hyperparameter, number of phases to Bragg filter per crop
-phases_per_crop = 1
+phases_per_crop = 3
 # Plot the Bragg filtered images
 FFT_indexer.Colour_Mix_BraggFilteredPhases(
     image_in_dataset_whole, general_bragg_filterings, phases_per_crop = phases_per_crop)

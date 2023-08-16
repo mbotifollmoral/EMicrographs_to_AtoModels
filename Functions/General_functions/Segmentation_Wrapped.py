@@ -27,7 +27,7 @@ from EMicrographs_to_AtoModels.Functions.General_functions import Segmentation_1
 from EMicrographs_to_AtoModels.Functions.General_functions import Filters_Noise as FiltersNoise
 
 from EMicrographs_to_AtoModels.Functions.PeakDet_Segment.Segmentation_model import SG_Segmentation_algorithms as SegmAlgs
-
+from EMicrographs_to_AtoModels.SAM_Segmentor import SAM_Segm_Functions as SAMSegm
 
 # Segmentation functions in the combined algorihtm 1st aprox
 
@@ -265,7 +265,7 @@ def Upscale_Segmented_Steps(
 
 def Segment_Images_ContourBased(
         images_to_segment, relative_positions_to_segment, 
-        pixel_sizes_to_segment):
+        pixel_sizes_to_segment, segm_setting = 'contour'):
     '''
     Takes the images to be segmented (within pixel sizes criteria) and segments them and puts them in the
     images_segmented list, ordered as they entered (lowest mag to highest mag)
@@ -282,8 +282,12 @@ def Segment_Images_ContourBased(
     images_to_segment : image_in_dataset object
     relative_positions_to_segment : relative positions of the images to be segmented
     pixel_sizes_to_segment : pixel sizes of the images to be segmented
-
-    the three arrays must have the same nnumber of elements
+    --> the three arrays must have the same nnumber of elements
+    segm_setting: string, 'SAM' indicating that SAM segmentation is going to
+                be used, else, e.g. 'contour', the base contour finding 
+                segmentation is used instead,
+                default, 'contour' or else, so not SAM
+    
     Returns
     -------
     images_segmented : list of arrays
@@ -302,17 +306,26 @@ def Segment_Images_ContourBased(
             images_to_segment, relative_positions_to_segment, pixel_sizes_to_segment):
         array_to_segment=image_to_segment.image_arraynp_st
         
-        # Automated segmentation
-        image_segmented = SegmAlgs.automate_segmentation(
-            image_to_segment.hyperspy_2Dsignal, number_of_pixels = n_pixels_for_contour, plot = False)
-                     
-        # Re-scale the image to its original size
-        size_down=(array_to_segment.shape[0],array_to_segment.shape[0])
-        image_segmented= cv2.resize(image_segmented, size_down, interpolation = cv2.INTER_NEAREST)
+        # Decide whether to use the reference automated SAM segmentation or
+        # the contour based one
+        if segm_setting == 'SAM':
+            # Automated SAM segmentation
+            image_segmented = SAMSegm.Full_SAM_Autosegmentation(
+                image_to_segment.image_arraynp_st)
+            
+        else:
         
-        # progressively rescale the image back to its original size
-        # DOES NOT HELP, SAME RESULT WITH SINGLE UPSCALING
-        # image_segmented = Upscale_Segmented_Steps(image_segmented, image_to_segment.total_pixels)
+            # Automated segmentation
+            image_segmented = SegmAlgs.automate_segmentation(
+                image_to_segment.hyperspy_2Dsignal, number_of_pixels = n_pixels_for_contour, plot = False)
+                         
+            # Re-scale the image to its original size
+            size_down=(array_to_segment.shape[0],array_to_segment.shape[0])
+            image_segmented= cv2.resize(image_segmented, size_down, interpolation = cv2.INTER_NEAREST)
+        
+            # progressively rescale the image back to its original size
+            # DOES NOT HELP, SAME RESULT WITH SINGLE UPSCALING
+            # image_segmented = Upscale_Segmented_Steps(image_segmented, image_to_segment.total_pixels)
 
         # Delete any possible 0 remaining after upscaling
         image_segmented = SegmAlgs.remove_noise(image_segmented)

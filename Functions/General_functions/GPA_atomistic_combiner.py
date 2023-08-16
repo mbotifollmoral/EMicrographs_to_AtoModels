@@ -2033,7 +2033,7 @@ def Distort_AtoModel_Region(
         # Displace the atom list
         list_of_errors_displ = Displace(
             region_to_strain_atom_list, Disp_y, -Disp_x, region_to_strain_atomcords, 
-            rate=0.3, Max_try=130)    
+            rate=0.5, Max_try=130)    
         
         # Purge the list of incorrectly displaced atoms by first getting just the 
         # atoms that are within the box (in case a displacement brought some outside)
