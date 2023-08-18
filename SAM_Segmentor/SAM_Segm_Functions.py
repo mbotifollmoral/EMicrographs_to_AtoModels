@@ -209,6 +209,22 @@ def Maximise_num_SAM_segments(
     # then remove the signle label and have preference of the other many
     # labels occupying this space
     
+    # Make sure the label 0, set as background, is not a real segment by itself
+    # if the number of counts the 0 has is bigger than 30% of pixels in the image
+    # then consider it an area by itself
+    
+    total_pixels = np.shape(final_segmented_image)[0]*np.shape(final_segmented_image)[1]
+
+    unq_vals, unq_counts = np.unique(final_segmented_image, return_counts=True)
+    counts_of_0s = unq_counts[unq_vals == 0]
+    
+    if counts_of_0s/total_pixels > 0.3:
+        # then the 0s are expressing an actual segment so make it another label
+        
+        final_segmented_image[final_segmented_image == 0] = np.max(unq_vals)+1
+    
+    
+    
     plt.imshow(final_segmented_image)
     plt.show()
     
