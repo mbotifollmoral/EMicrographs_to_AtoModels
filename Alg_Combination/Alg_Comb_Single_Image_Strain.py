@@ -90,10 +90,12 @@ Template matching and generation of the relative coordinates per image over the 
 # root.withdraw()
 # dataset_system_path_name = filedialog.askdirectory(parent=root,initialdir="/",title='Folder with the images dataset')
 
-dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_InP_TransvNW_6\Micrographs\\'
-dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_Sn_VLS2\Micrographs\\'
-dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_InP_TransvNW_3\Micrographs\\'
 
+dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_Sn_VLS2\Micrographs\\'
+dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\GeQW2\Micrographs\\'
+dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_InP_TransvNW_3\Micrographs\\'
+dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_InP_TransvNW_6\Micrographs\\'
+dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\10721_0014_0\Micrographs\\'
 
 # Browse the images in the folder and also calibrate
 # !!! CALIBRATION CORRECTION DONE HERE --> NO NEED TO CHANGE THE CALIBRATION OF THE IMAGES AT ANY POINT
@@ -349,8 +351,6 @@ label_of_substrate = GPA_sp.Define_Region_as_GPA_Reference(
 
 
 # With the 1st approximation just define the label  of the reference we want
-# label_of_GPA_ref = 3
-
 
 # Pixels within the whole image in which the crop of the reference is taken, 
 # so the box of the reference itself [first_row,last_row,first_col,last_col]
@@ -704,6 +704,7 @@ conts_vertx_per_region = Segment.Relative_Vertexs_Contours(
     images_segmented[0], conts_vertx_per_region_skept, 
     relative_positions_to_segment[0], pixel_sizes_to_segment[0])
 
+# conts_vertx_per_region = conts_vertxs_per_region_segmented[0]
 # Whether to include or not the regions where no crystal is found
 # False to include regions where no crystal was found
 FEM_only_crystals = True
@@ -724,7 +725,7 @@ input_FEM_filename = FEMBuild.Extract_FEM_input_parameters(
 Base atomistic model builder
 '''
 
-z_thickness_model = 1.3 # nm
+z_thickness_model = 1 # nm
 
 
 # If wanted, build the device with the perfect unmodified crystals from database    
@@ -752,7 +753,7 @@ Transfer strain map to atomistic model
 
 # !!! Strain distortion to models Hyperparameters
 B_strain_aug_fact = 0.15
-min_dist_red_fact = 1/3
+min_dist_red_fact = 1/2
 purge_interatomic_distance = True
 purge_wrong_displacements = False
 
@@ -771,7 +772,7 @@ path_global_strained_purged = GPA_AtoMod.Distort_AtoModel_Region(
 
 
 
-#%%
+ #%%
 
 '''
 Post-strain chemistry/segmentation refinement

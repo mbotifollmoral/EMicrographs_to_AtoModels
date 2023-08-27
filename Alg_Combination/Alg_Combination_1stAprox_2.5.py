@@ -5,6 +5,8 @@ Created on Fri Mar  4 16:21:11 2022
 @author: Marc
 """
 
+
+
 import numpy as np
 import os
 import imutils
@@ -20,28 +22,39 @@ import stemtool
 from sympy.utilities.iterables import multiset_permutations, permute_signs
 import torch
 import torch.nn
+from pathlib import Path
+from PIL import Image
+import gdspy
+import random
+import ase
+import ase.io
+import ase.visualize
 
-sys.path.append(r'E:\Arxius varis\PhD\3rd_year\Code\Functions')
+# !!! NEED to set the path to 
+# Alg_Comb_Single_Image_Strain.py
+# as the console working directory
+Project_main_path = os.getcwd()
+if 'EMicrographs_to_AtoModels' in Project_main_path:
+    Project_main_path = Project_main_path[:Project_main_path.find('EMicrographs_to_AtoModels')-1]
+# Project_main_path has the EMicrographs_to_AtoModels folder
+sys.path.append(Project_main_path)
 
-# General functions
-import HighToLowTM 
-import Segmentation_1stAprox as Segment
-import Filters_Noise as FiltersNoise
-import Phase_Identificator as PhaseIdent
-import ImageCalibTransf as ImCalTrans
-import PeakFinding_1stAprox as PeakFind
-import GPA_specific as GPA_sp
+import EMicrographs_to_AtoModels
 
-# Peak finding functions
-sys.path.append(r'E:\Arxius varis\PhD\4rth_year\Code\Functions\Peak_detector_Final')
-sys.path.append(r'E:\Arxius varis\PhD\4rth_year\Code\Functions\Ivans_Files_2\IVAN\Segmentation_model')
-sys.path.append(r'E:\Arxius varis\PhD\4rth_year\Code\Functions\General_functions')
+from EMicrographs_to_AtoModels.Functions.General_functions import HighToLowTM
+from EMicrographs_to_AtoModels.Functions.General_functions import Segmentation_1stAprox as Segment
+from EMicrographs_to_AtoModels.Functions.General_functions import Phase_Identificator as PhaseIdent
+from EMicrographs_to_AtoModels.Functions.General_functions import ImageCalibTransf as ImCalTrans
+from EMicrographs_to_AtoModels.Functions.General_functions import Segmentation_Wrapped as SegmWrap
+from EMicrographs_to_AtoModels.Functions.General_functions import FFT_indexer
+from EMicrographs_to_AtoModels.Functions.General_functions import FEM_input_generator as FEMBuild
+from EMicrographs_to_AtoModels.Atomistic_model_builder import Atomistic_Model_Builder as AtomBuild
+from EMicrographs_to_AtoModels.Functions.General_functions import GPA_atomistic_combiner as GPA_AtoMod
+from EMicrographs_to_AtoModels.Functions.General_functions import GPA_specific as GPA_sp
 
-import PF_FFT_processing as FFT_Procs
-import PF_Peaks_detector as Peaks_detector
-import PF_ImageTreatment_and_interfaces as PF_II
-import SG_Segmentation_algorithms as SegmAlgs
-import Segmentation_Wrapped as SegmWrap
+from EMicrographs_to_AtoModels.EELS_QuantMaps import EELS_QuantMaps_TemplMatch_Profile as EELSQuantAtoModel
+
+
 
 
 
@@ -51,7 +64,7 @@ import Segmentation_Wrapped as SegmWrap
 Hyperparameter definition
 '''
 # High to Low hyperparams
-real_calibration_factor=1  # change calibration of the image
+real_calibration_factor=0.97  # change calibration of the image
 N_ps_higher=3   # for the Find_best_Query_Template_pairs_Restrictive, number of pixel size differences between checked query-image pairs
 # No need to use N_ps_higher if Find_best_Query_Template_pairs algorithm is used instead  (all pairs considered) 
 
@@ -66,6 +79,8 @@ tooLow_FOV = 1500 #nm, is a FOV which is too
 tol=0.05 #tolerance: how different from theoretical values the previous values can be to get good output
 min_d=0.5    #minimum interplanar distance computed in the diffraction
 forbidden = True  #Include (True) or not (False) the forbidden reflections
+segm_setting = 'contour'  # Setting to define if use SAM segm, 'SAM', or contour, else
+crop_setting = 'crop' # 'mask' or 'crop', FFT from the mask of the segmentation or from crop inside
 
 
 #%%
@@ -80,9 +95,22 @@ Template matching and generation of the relative coordinates per image over the 
 # root.withdraw()
 # dataset_system_path_name = filedialog.askdirectory(parent=root,initialdir="/",title='Folder with the images dataset')
 
-dataset_system_path_name=r'E:\Arxius varis\PhD\2nd_year\Code\trial_images\full_device_STEM_datasets\QT543AlNb\\'
 dataset_system_path_name=r'E:\Arxius varis\PhD\2nd_year\Code\trial_images\full_device_STEM_datasets\Qdev439_InAs120nm_Al full 25nm\NW1\\'
+dataset_system_path_name=r'E:\Arxius varis\PhD\4rth_year\Data_Reports\Template_Matching_Datasets\InSb_InP_NW6\\'
+dataset_system_path_name=r'E:\Arxius varis\PhD\4rth_year\Data_Reports\Template_Matching_Datasets\GeNW_6727\\'
+
+
+dataset_system_path_name=r'E:\Arxius varis\PhD\4rth_year\Data_Reports\Template_Matching_Datasets\GeNW_6727_Titan\20220504_GeNWs\Data\2nd_set_Nov2022\6727_110_selected\\'
+
+
+dataset_system_path_name=r'E:\Arxius varis\PhD\4rth_year\Data_Reports\Template_Matching_Datasets\SQ20-250-2_Reduced\\'
+dataset_system_path_name=r'E:\Arxius varis\PhD\4rth_year\Data_Reports\Template_Matching_Datasets\QT543_Reduced\\'
 dataset_system_path_name=r'E:\Arxius varis\PhD\2nd_year\Code\trial_images\full_device_STEM_datasets\SQ20-250-2\\'
+
+dataset_system_path_name=r'E:\Arxius varis\PhD\2nd_year\Code\trial_images\full_device_STEM_datasets\QT543AlNb\\'
+
+dataset_system_path_name=r'E:\Arxius varis\PhD\4rth_year\Data_Reports\Template_Matching_Datasets\Lis04_Reduced\\'
+
 
 # Browse the images in the folder and also calibrate
 # !!! CALIBRATION CORRECTION DONE HERE --> NO NEED TO CHANGE THE CALIBRATION OF THE IMAGES AT ANY POINT
@@ -135,8 +163,8 @@ images_to_segment, relative_positions_to_segment, pixel_sizes_to_segment = SegmW
 #     images_to_segment, relative_positions_to_segment, pixel_sizes_to_segment)
 
 images_segmented, conts_vertxs_per_region_segmented = SegmWrap.Segment_Images_ContourBased(
-    images_to_segment, relative_positions_to_segment, pixel_sizes_to_segment)
-
+    images_to_segment, relative_positions_to_segment, 
+    pixel_sizes_to_segment, segm_setting = segm_setting)
 
 #%%
 
@@ -154,8 +182,8 @@ crystal_objects_list, space_group_list = PhaseIdent.Init_Unit_Cells_AnyFormat(un
 
 
 # Limit the cells for the trials
-crystal_objects_list = crystal_objects_list[0:3]
-space_group_list = space_group_list[0:3]
+# crystal_objects_list = crystal_objects_list[0:3]
+# space_group_list = space_group_list[0:3]
 # list to store all the Analysed_Image objects with all the images, crops and ZA found
 list_analysed_images = []
 
@@ -212,7 +240,7 @@ for image_in_dataset in flat_images_in_dataset_by_pixel_size:
         for label in labels_in_crop:
             # setting 'crop' or 'mask' (for multiple image analysis, crop)
             image_crop_hs_signal, image_crop_array, total_pixels_crop, crop_FOV, scaled_reference_coords = HighToLowTM.Get_Atomic_Crop_from_Segmented_Crop(
-                crop_image_array_ups, label, image_in_dataset, setting = 'crop')
+                crop_image_array_ups, label, image_in_dataset, setting = crop_setting)
             
             # # After finding the square per label check whether the obtained 
             # # field of view and pixel size is enoguh to extract a reliable FFT
@@ -245,7 +273,7 @@ for image_in_dataset in flat_images_in_dataset_by_pixel_size:
                 # the segmented image and the crop index
                 analysed_image_obj.Add_Crop_Output(
                     image_crop_hs_signal, scaled_reference_coords, 
-                    image_relative_coords, [],[], [])
+                    image_relative_coords, [],[],[])
                   
         # Add the analysed image object to the list of analysed images 
         # objects to gather them and compare them with the
@@ -284,9 +312,10 @@ def Map_Analysed_Phases(
             elif len(crop_phases) == 1:
                 phase_name = str(crop_phases[0].phase_name) + str(crop_phases[0].ZA)
             else:
-                phase_name = str(crop_phases[0].phase_name) + str(crop_phases[0].ZA) +' and ' + \
-                str(crop_phases[1].phase_name) + str(crop_phases[1].ZA)
-            
+                # phase_name = str(crop_phases[0].phase_name) + str(crop_phases[0].ZA) +' and ' + \
+                # str(crop_phases[1].phase_name) + str(crop_phases[1].ZA)
+                phase_name = str(crop_phases[0].phase_name) + str(crop_phases[0].ZA) 
+                
             (x_start, y_start, x_end, y_end) = crop_rel_cords
             x_cord = x_start + (x_end - x_start)/2
             y_cord = y_low_end - (y_start + (y_end - y_start)/2)
