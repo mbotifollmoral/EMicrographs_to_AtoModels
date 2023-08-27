@@ -2033,7 +2033,12 @@ def Distort_AtoModel_Region(
         # Displace the atom list
         list_of_errors_displ = Displace(
             region_to_strain_atom_list, Disp_y, -Disp_x, region_to_strain_atomcords, 
-            rate=0.5, Max_try=130)    
+            rate=0.7, Max_try=150)    
+        
+        # Save the list of atoms that are not well displaced
+        path_error_atoms = atom_models_filepath + 'misplaced_atoms.xyz'
+        save_xyf(
+            list_of_errors_displ, path_error_atoms)
         
         # Purge the list of incorrectly displaced atoms by first getting just the 
         # atoms that are within the box (in case a displacement brought some outside)
@@ -2234,7 +2239,6 @@ def Refine_StrainedRegion_SingleAtomBlock_Segmentation(
     global_list_list_indices_coords_inside = []
     global_list_list_new_atoms_to_substitute = []
     
-    
     for label_region in labels_equally_oriented_as_ref:
         
         if label_region != label_of_GPA_ref:
@@ -2331,7 +2335,7 @@ def Refine_StrainedRegion_SingleAtomBlock_Segmentation(
                     # not found
                     position_aware_replace = False
                     break
-                
+
             # STEP 2.2: Get the stoichiometry of the reference phase with the    
             # given occupancies and Wyckoff multiplciites of every atom
             # Correlates 1 to 1 with the list primit_cell_pos_ref
@@ -2389,7 +2393,6 @@ def Refine_StrainedRegion_SingleAtomBlock_Segmentation(
                 elements_lab.append(element)
                 element_indiv_stoichio_lab.append(numb_elemts_primpos)
             
-            
             # list to have the atoms to be substituted in the position defined
             # by the indices_coords_inside, 
             # is a list of lists as if we do not collapse occupancies
@@ -2403,10 +2406,8 @@ def Refine_StrainedRegion_SingleAtomBlock_Segmentation(
             for index, atom in zip(
                     indices_coords_inside, list_atoms_inside):
                 
-                
-                list_atoms_inside = []
-                indices_coords_inside = []
-                
+                # list_atoms_inside = []
+                # indices_coords_inside = []
                 
                 # Can be the symbol or Z depending on how it was input
                 element_original = atom.Z.strip()
@@ -2439,6 +2440,7 @@ def Refine_StrainedRegion_SingleAtomBlock_Segmentation(
                     elements_to_substitute = []
                     prob_of_substitution = []
                     
+                    
                     for primit_refs_atom, prob_primpos in zip(
                             primits_refs_atom, probab_prim_pos):
                         
@@ -2452,6 +2454,29 @@ def Refine_StrainedRegion_SingleAtomBlock_Segmentation(
                                 prob_of_substitution.append(prob_subst)
                     
                     
+                    # Should never happen, but just in case, address if the
+                    # element to substitute by is already present in the
+                    # origina list of atoms, but not in the original ref cell file
+                    # for the phase building the ref region
+                    # or more generally if no element to substitute is found, just
+                    # subsitute by one of the label regions with the probability
+                    # as indicated by the global stoichiometry of the lab phase
+                    if len(elements_to_substitute) == 0:
+                        # compute the probabilities or occupancies based
+                        # on the individual stoichiometry of every atom
+                        # as the atom already belongs to the lab phase which is
+                        # the eventual one containing the elements to be substtued
+                        # by, then the sbustitution is based on this stoichiometry
+                        element_indiv_stoichio_lab_array = np.asarray(
+                            element_indiv_stoichio_lab)
+                        element_indiv_prob_lab_array = element_indiv_stoichio_lab_array/np.sum(element_indiv_stoichio_lab_array)
+                        
+                        for element_lab, prob_lab in zip(
+                                elements_lab, element_indiv_prob_lab_array):
+                            elements_to_substitute.append(element_lab)
+                            prob_of_substitution.append(prob_lab)
+
+
                     # Get the atoms colapsing or not on bolean
                     if collapse_occupancies == True:
                         # Just get one atom collapsing the probabilites

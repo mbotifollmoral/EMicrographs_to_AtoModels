@@ -373,8 +373,11 @@ def uce_to_cif(
     
     symmetry_operations_formatted = []
     
+    
     for sgn, stn, hmsymb, symops in zip(
             templ_space_groups_numb, templato_STNs, hmsymbols, symmetry_ops):
+        # print(sgn)
+        # print(stn)
         # filter by space group number
         if sgn == RGNR:
             
@@ -383,11 +386,10 @@ def uce_to_cif(
             # or 1, then better to avoid this if there is just one STN then chose the
             # only one and if more, then for sure there will be a 1
             all_rgnrs_inlist = [el for el in templ_space_groups_numb if el == RGNR]
+
             if len(all_rgnrs_inlist) == 1:
                 stn = STN
-            
-            # filter by the STN 
-            if stn == STN:
+                
                 # get the herman maguin symbol
                 hmsymbol_found = hmsymb
                 
@@ -419,6 +421,44 @@ def uce_to_cif(
                     symmetry_operations_formatted.append(symop_formatted)
                     
                     symop_index = symop_index +1
+                
+                break
+                
+            # filter by the STN 
+            elif stn == STN:
+                # get the herman maguin symbol
+                hmsymbol_found = hmsymb
+                
+                # get the symmetry operations
+                symop_index = 1
+                for symop in symops:
+                    
+                    if symop_index < 10:
+                        
+                        symop_formatted = '  ' + str(int(symop_index)) + '   '
+                    
+                        coords = symop[3+len(str(symop_index -1)) + 2 : symop.find('\n')] 
+                        
+                        symop_formatted = symop_formatted + "'" + coords + "'" + '\n'
+                        
+                    elif symop_index == 10:
+                        symop_formatted = ' ' + str(int(symop_index)) + '   '
+                        
+                        coords = symop[3+len(str(symop_index -1)) + 2 : symop.find('\n')] 
+                        
+                        symop_formatted = symop_formatted + "'" + coords + "'" + '\n'
+                    else:
+                        symop_formatted = ' ' + str(int(symop_index)) + '   '
+                        
+                        coords = symop[3+len(str(symop_index -1)) + 2 : symop.find('\n')] 
+                        
+                        symop_formatted = symop_formatted + "' " + coords + "'" + '\n'
+                        
+                    symmetry_operations_formatted.append(symop_formatted)
+                    
+                    symop_index = symop_index +1
+                    
+                break
                 
     # Find Bravais cell from HM symbol
     bravais_type =  hmsymbol_found[0]   
@@ -7032,7 +7072,7 @@ def Build_DeviceSupercell_Virtual_To_Distort(
         #     final_in_surf_plane_rotation = .....
         final_in_surf_plane_rotation_ref = Adjust_in_surface_plane_rotation(
             cif_cell_filepath_ref, best_GPA_ref_spot_pair, suface_basis_choice = 'plane')
-        
+
         # As it is the reference crystal we do not need to apply any correction
         # to the computed rotation                 
         
