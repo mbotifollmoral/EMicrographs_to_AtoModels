@@ -2600,7 +2600,7 @@ def Refine_StrainedRegion_SingleAtomBlock_Segmentation(
         atomregmodel_path_final =  path_global_strained_purged[:path_global_strained_purged.find('.xyz')] + '_Col_FINAL.xyz'                
         
         save_xyf(
-            final_list_of_all_new_atoms, atomregmodel_path_final, save_occsDW = False)
+            final_list_of_all_new_atoms, atomregmodel_path_final, save_occsDW = True)
         
     else:
         # if collapse_occupancies == False:

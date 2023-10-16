@@ -356,7 +356,10 @@ def agrupar(img):
     return final_zonas, final_matrix
     
     
-def reagrupar(img):
+# First original reagrupar function that does not produce the best results 
+# as confuses the contours when they are wide enough    
+    
+def reagrupar_OLD(img):
     n = len(img)
     img_r = np.zeros((n,n))
     m = int(np.max(img)+1)
@@ -398,6 +401,83 @@ def reagrupar(img):
 
     
     return img_r 
+    
+    
+    
+    
+    
+def apply_kernel(img, kernel, normalize = False, edges = True):
+    n_kernel = len(kernel)
+    n_image = len(img)
+    
+    if edges:
+        conv_img = np.zeros((n_image+n_kernel-1,n_image+n_kernel-1))
+        n_img_edges = np.zeros((n_image+n_kernel-1,n_image+n_kernel-1))
+        n_img_edges[n_kernel//2: n_image + n_kernel//2, n_kernel//2: n_image + n_kernel//2] = img
+        img = n_img_edges
+        n_image = len(img)
+    else:
+        conv_img = np.zeros((n_image,n_image))
+    
+    n_steps = n_image - n_kernel + 1
+    
+    for i in range(n_steps):
+        for j in range (n_steps):
+            conv_img[i + n_kernel//2, j + n_kernel//2] = (kernel * img[i : i + n_kernel, j : j + n_kernel]).sum()
+    
+    if edges:
+        conv_img = conv_img[n_kernel//2: n_image + n_kernel//2 -2, n_kernel//2: n_image + n_kernel//2 -2]
+        
+        
+    if normalize: return 2*PF_II.normalize_image(conv_img)-1
+    else: return conv_img
+
+def split_in_parts(img):
+    out = img == 0
+    inner = img<0
+    edge = img>0
+    
+    return out, inner, edge
+
+
+edge_kernel = np.asarray([[1, 1, 1],
+                          [1,-9, 1],
+                          [1, 1, 1]])
+
+
+def reagrupar(img):
+    n = len(img)
+    img_r = np.zeros((n,n))
+    m = int(np.max(img)+1)
+    # Remove separeted regions and keep the biggest
+    for k in range(1,m):
+        zone = img*(img==k)
+        n_zones, matrix_zones = agrupar(zone)
+      
+        matrix_zones_wb = matrix_zones[np.where(matrix_zones!=-1)]
+        # mode = stats.mode(matrix_zones_wb, axis=None, keepdims=False)[0]
+        mode = stats.mode(matrix_zones_wb, axis=None)[0]
+        
+        new_zone  = zone*(matrix_zones==mode)
+        
+        img_r += new_zone
+    
+    edges = img_r == 0
+       
+    #Refill edges in a continous way
+    while edges.any():
+        for i in range(1,int(np.max(img_r)+1)):
+            if (img_r == i).any():
+                edge_detected = apply_kernel((img_r == i)*1, edge_kernel, normalize = False)
+                out, inner, edge = split_in_parts(edge_detected)
+                img_r[edges] = (edges*edge*i)[edges]
+                edges = img_r == 0
+    
+    
+    return img_r    
+    
+    
+    
     
     
 def split_separated_regions(l, pixels, clusters):

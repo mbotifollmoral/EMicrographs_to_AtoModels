@@ -455,7 +455,7 @@ def EELS_AtoModel_Substitution(
     colaps_occ_eelsed_path = path_global_strained_purged[:path_global_strained_purged.find('.xyz')] + '_EELS_Colaps.xyz'
 
     GPA_AtoMod.save_xyf(
-        new_Atoms_list_colapsOcc, colaps_occ_eelsed_path, save_occsDW = False)
+        new_Atoms_list_colapsOcc, colaps_occ_eelsed_path, save_occsDW = True)
     
         
     return noncolaps_occ_eelsed_path, colaps_occ_eelsed_path
