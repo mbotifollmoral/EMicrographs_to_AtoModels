@@ -313,6 +313,8 @@ def Segment_Images_ContourBased(
             image_segmented = SAMSegm.Full_SAM_Autosegmentation(
                 image_to_segment.image_arraynp_st)
             
+            image_segmented = SegmAlgs.reagrupar(image_segmented)
+            
         else:
         
             # Automated segmentation

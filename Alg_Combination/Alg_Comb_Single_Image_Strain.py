@@ -74,8 +74,8 @@ tooLow_FOV = 1500 #nm, is a FOV which is too
 tol=0.05 #tolerance: how different from theoretical values the previous values can be to get good output
 min_d=0.5    #minimum interplanar distance computed in the diffraction
 forbidden = True  #Include (True) or not (False) the forbidden reflections
-segm_setting = 'contour'  # Setting to define if use SAM segm, 'SAM', or contour, else
-crop_setting = 'crop' # 'mask' or 'crop', FFT from the mask of the segmentation or from crop inside
+segm_setting = 'SAM'  # Setting to define if use SAM segm, 'SAM', or contour, else
+crop_setting = 'mask' # 'mask' or 'crop', FFT from the mask of the segmentation or from crop inside
 
 
 #%%
@@ -92,10 +92,10 @@ Template matching and generation of the relative coordinates per image over the 
 
 
 dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_Sn_VLS2\Micrographs\\'
-dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\GeQW2\Micrographs\\'
-dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_InP_TransvNW_3\Micrographs\\'
 dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_InP_TransvNW_6\Micrographs\\'
 dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\10721_0014_0\Micrographs\\'
+
+
 
 # Browse the images in the folder and also calibrate
 # !!! CALIBRATION CORRECTION DONE HERE --> NO NEED TO CHANGE THE CALIBRATION OF THE IMAGES AT ANY POINT
@@ -725,7 +725,7 @@ input_FEM_filename = FEMBuild.Extract_FEM_input_parameters(
 Base atomistic model builder
 '''
 
-z_thickness_model = 1 # nm
+z_thickness_model = 1.3 # nm
 
 
 # If wanted, build the device with the perfect unmodified crystals from database    
