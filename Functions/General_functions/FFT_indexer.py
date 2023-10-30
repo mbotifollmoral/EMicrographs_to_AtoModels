@@ -377,8 +377,7 @@ def Indexed_FFT_BraggFiltering(
 
         for cryst_spot in crop_list_refined_cryst_spots:
             
-            
-            dict_entry_string = cryst_spot.phase_name + '_' + str(cryst_spot.ZA_priv_index)
+            dict_entry_string = cryst_spot.phase_name + '_'  + str(cryst_spot.ZA) + '_' + str(cryst_spot.ZA_priv_index)
             
             # the int refs of the spots (cryst_spot.spots) 
             # are also the index so get the 

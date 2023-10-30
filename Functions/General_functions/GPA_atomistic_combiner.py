@@ -234,7 +234,8 @@ def read_xyz_Original(filename, BOX = None, extra=0):
 
 
 
-def read_xyz(filename, BOX = None, extra=0):
+def read_xyz(
+        filename, BOX = None, extra=0, ):
     B = [0,0,0,0]
     if BOX is not None:
         B[0]=BOX[0]-extra
@@ -260,16 +261,30 @@ def read_xyz(filename, BOX = None, extra=0):
         for i in range(Natom):
             line = file.readline() #second line is empty
             Z = line.strip()[0:2]
-            x,y,z = [float(f) for f in re.findall("[-+]?[.]?[\d]+(?:,\d\d\d)*[\.]?\d*(?:[eE][-+]?\d+)?", line.strip())]
-            Alist.append(Atom(Z,x,y,z))
+            
+            try:
+                x,y,z = [float(f) for f in re.findall("[-+]?[.]?[\d]+(?:,\d\d\d)*[\.]?\d*(?:[eE][-+]?\d+)?", line.strip())]
+                Atom_object = Atom(Z,x,y,z)
+            except:
+                x,y,z, Occ, DW = [float(f) for f in re.findall("[-+]?[.]?[\d]+(?:,\d\d\d)*[\.]?\d*(?:[eE][-+]?\d+)?", line.strip())]
+                Atom_object = Atom(Z,x,y,z, Occ, DW)
+            
+            Alist.append(Atom_object)
             indexes_to_keep.append(i)
     else:
         for i in range(Natom):
             line = file.readline() #second line is empty
             Z = line.strip()[0:2]
-            x,y,z = [float(f) for f in re.findall("[-+]?[.]?[\d]+(?:,\d\d\d)*[\.]?\d*(?:[eE][-+]?\d+)?", line.strip())]
+            
+            try:
+                x,y,z = [float(f) for f in re.findall("[-+]?[.]?[\d]+(?:,\d\d\d)*[\.]?\d*(?:[eE][-+]?\d+)?", line.strip())]
+                Atom_object = Atom(Z,x,y,z)
+            except:
+                x,y,z, Occ, DW = [float(f) for f in re.findall("[-+]?[.]?[\d]+(?:,\d\d\d)*[\.]?\d*(?:[eE][-+]?\d+)?", line.strip())]
+                Atom_object = Atom(Z,x,y,z, Occ, DW)
+            
             if In_Box(x,y,B): 
-                Alist.append(Atom(Z,x,y,z))
+                Alist.append(Atom_object)
                 indexes_to_keep.append(i)
     file.close()
     return Alist, indexes_to_keep
@@ -1995,6 +2010,11 @@ def Distort_AtoModel_Region(
                 region_cut_base = 'region_cut_base'
                 region_cut_strained = 'region_cut_strained'
                 region_cut_strained_purged = 'region_cut_strained_purged'
+                # label_region = atomistic_model[atomistic_model.find('supercell_')+10:]
+                # label_region = label_region[:label_region.find('.xyz')]
+                # region_cut_base = 'region_cut_base_'
+                # region_cut_strained = 'region_cut_strained_'
+                # region_cut_strained_purged = 'region_cut_strained_purged_'
     
             else:
                 continue
@@ -2663,10 +2683,9 @@ def Refine_StrainedRegion_MultiAtomBlock_Segmentation(
     
     # list atoms inside their region initially segmented 
     final_list_of_all_new_atoms = []
-    
     for atomistic_model in os.listdir(atom_models_filepath):
         # Just keep the strained and purged models
-        if 'region_cut_strained_purged_'  not in atomistic_model:
+        if 'region_cut_strained_purged'  not in atomistic_model:
             continue
         
         # Extract the label of the file to be able to check if it 
@@ -2675,6 +2694,7 @@ def Refine_StrainedRegion_MultiAtomBlock_Segmentation(
         # as the filename starts with 'region_cut_strained_purged_' 
         # the position is already known 
         label_string = atomistic_model[27: atomistic_model.find('.xyz')]
+        
         label = int(label_string)
         atomod_filepath = atom_models_filepath + atomistic_model
 
@@ -2684,7 +2704,7 @@ def Refine_StrainedRegion_MultiAtomBlock_Segmentation(
         
         # Get the contours for that segmented region /label       
         list_of_contours_label = conts_vertx_per_region[str(int(label)) + '_contours'].copy()
-
+        
         # Loop through the atoms found and check if they are inside the
         # segment defined by region number label
         for atom in list_original_atoms_objects_region:
@@ -2708,9 +2728,102 @@ def Refine_StrainedRegion_MultiAtomBlock_Segmentation(
     atomregmodel_path_final =  atom_models_filepath + 'region_cut_strained_purged_FINAL.xyz'          
     
     save_xyf(
-        final_list_of_all_new_atoms, atomregmodel_path_final, save_occsDW = False)
+        final_list_of_all_new_atoms, atomregmodel_path_final, save_occsDW = True)
 
     return atomregmodel_path_final
+
+
+
+def Refine_StrainedRegion_SingleSegmentCrystalline(
+        atom_models_filepath, conts_vertx_per_region, crystalline_label_segm):
+    '''
+    Function to build the final model after the strain application to 
+    each of the separated model files but for a model in which only a single
+    phase is found, so just one only segment has a crystalline phase in it
+
+    Parameters
+    ----------
+    atom_models_filepath : path to where all the models for all the labels 
+                            after the strain application
+    conts_vertx_per_region : TYPE
+        DESCRIPTION.
+    crystalline_label_segm: int, label of the only segment that is crystalline
+    Returns
+    -------
+    atomregmodel_path_final : TYPE
+        DESCRIPTION.
+
+    '''
+
+    # Get the maximum ys and xs to shift the atom coordinate checker
+    all_ys_max = []
+    for dict_entry in conts_vertx_per_region:
+        if '_rel_vertexs' in dict_entry:
+            
+            list_rel_vertex = np.copy(conts_vertx_per_region[dict_entry])
+            # !!! list_rel_vertex is in format of [y,x], and the functions that use them require 
+            # format [x,y], so just interchange the columns
+            list_rel_vertex_cache = np.copy(list_rel_vertex)
+            list_rel_vertex[:,0] = list_rel_vertex_cache[:,1]
+            list_rel_vertex[:,1] = list_rel_vertex_cache[:,0]
+            list_rel_vertex = list(list_rel_vertex)
+
+            #Get dimensions of the rectangle, in nm
+            x_min_c, x_max_c, x_length, y_min_c, y_max_c, y_length = AtomBuild.Get_Smallest_Rectangular_Cell(
+                list_rel_vertex)
+            
+            all_ys_max.append(y_max_c) 
+            
+    # Values is in nm, change it afterwards within atomic_pos_xy        
+    global_y_max = np.max(np.asarray(all_ys_max))
+    
+    # Extract the list of contours for the label of the region that is crystalline
+    list_of_contours_label = conts_vertx_per_region[str(int(crystalline_label_segm)) + '_contours'].copy()
+    
+    # list atoms inside their region initially segmented 
+    final_list_of_all_new_atoms = []
+    for atomistic_model in os.listdir(atom_models_filepath):
+        # Just keep the strained and purged models
+        if 'region_cut_strained_purged'  not in atomistic_model:
+            continue
+        
+        # Extract the label of the file to be able to check if it 
+        # is inside the segmented contour 
+        atomod_filepath = atom_models_filepath + atomistic_model
+
+        # List of atoms holding the coordinates of the atomic model
+        list_original_atoms_objects_region, _ = read_xyz(
+            atomod_filepath)    
+        
+        # Get the contours for that segmented region /label 
+        
+        # Loop through the atoms found and check if they are inside the
+        # segment defined by region number label
+        for atom in list_original_atoms_objects_region:
+            
+            atomic_pos_xy = [atom.x/10, global_y_max - atom.y/10]
+            
+            # The contour checker checks the flipped version of 
+            # the coordinate but then the normal one is added
+            is_coord_inside = AtomBuild.Is_coordinate_inside_contour_diagonal(
+                atomic_pos_xy, list_of_contours_label)
+            
+            # if coordiante is inside store the index to keep the coord from the array
+            # Then from their original region, label, we check if they are still there
+            # with their possibly new atomic coordinates after the strain field
+            # encoded in atom.x, atom.y
+            if is_coord_inside == True:
+                final_list_of_all_new_atoms.append(atom)
+            
+    # build the list of atoms 
+    atomregmodel_path_final =  atom_models_filepath + 'region_cut_strained_purged_FINAL.xyz'          
+    
+    save_xyf(
+        final_list_of_all_new_atoms, atomregmodel_path_final, save_occsDW = True)
+
+    return atomregmodel_path_final
+
+
 
 
 
