@@ -244,7 +244,8 @@ def automate_segmentation(image, number_of_pixels = 256, plot = True):
     elif scale > 50:
         sigma, border_size, vmax= 11, 5, 20
     else:
-        sigma, border_size, vmax= 13, 5, 10
+        # sigma, border_size, vmax= 13, 5, 10  for high mags works better with this 4
+        sigma, border_size, vmax= 13, 4, 10
         
     labels_canny = border(r_image, sigma, border_size,  vmax)
     labels_wout_noise_canny = reagrupar(labels_canny) 

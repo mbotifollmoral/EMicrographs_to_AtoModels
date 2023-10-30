@@ -113,7 +113,8 @@ def Maximise_num_SAM_segments(
         
     # segm_image we can see how the initial segmentation is with all the segments 
     # considered
-    
+    # plt.imshow(segm_image)
+    # plt.show()
     # sort the segmentated regions from the largest counts to the smallest
     # so more area/pixels assigned for the label to less        
     sorted_counts = [counts for _,counts in sorted(zip(indiv_segms, counts_of_1s), key = lambda pair: pair[1])][::-1]

@@ -76,6 +76,8 @@ min_d=0.5    #minimum interplanar distance computed in the diffraction
 forbidden = True  #Include (True) or not (False) the forbidden reflections
 segm_setting = 'SAM'  # Setting to define if use SAM segm, 'SAM', or contour, else
 crop_setting = 'mask' # 'mask' or 'crop', FFT from the mask of the segmentation or from crop inside
+z_thickness_model = 1.3  # nm, thickness of the model in the translational invariant direction
+
 
 
 #%%
@@ -95,6 +97,7 @@ dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InS
 dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\InSb_InP_TransvNW_6\Micrographs\\'
 dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\10721_0014_0\Micrographs\\'
 
+dataset_system_path_name = r'E:\Arxius varis\PhD\4rth_year\Global_ML_Results\GeQW2\Micrographs\\'
 
 
 # Browse the images in the folder and also calibrate
@@ -169,7 +172,6 @@ Functions for finding out the high mag image within the segmented map
 # Get the possible unit cells into a Crystal object to hold a DP simulation
 unit_cells_path = r'E:\Arxius varis\PhD\3rd_year\Code\unit_cells'
 
-
 # Initialise the crystal objects for every possible unit cell in the path of possible cells
 # crystal_objects_list, space_group_list = PhaseIdent.Init_Unit_Cells(unit_cells_path)
 crystal_objects_list, space_group_list = PhaseIdent.Init_Unit_Cells_AnyFormat(unit_cells_path)
@@ -184,7 +186,6 @@ list_analysed_images = []
 
 # From the list of images_in_dataset objects, relative positions and pixel sizes, ordered 1 to 1
 # we can proceed with the atomic identification    
-
 
 
 # set pixel size below which images are considered: for TITAN and 2k images
@@ -331,6 +332,10 @@ else:
 analysed_image_only = list_analysed_images[0]
 crop_outputs_dict = analysed_image_only.Crop_outputs
 
+# Retrieve the number of segments which have a crystalline phase in it
+n_crysts_found, crystalline_segments = GPA_sp.Number_Cyrstalline_Phases_Found(
+    crop_outputs_dict)
+
 # Image in dataset base information
 image_in_dataset_whole = images_in_dataset_list[0]
 image_array_whole = image_in_dataset_whole.image_arraynp_st
@@ -374,10 +379,9 @@ else:
 # Reduce the coordinates of the square taking the reference region
 # for the GPA a given factor 
 # !!! Hyperparameter factor
-GPA_square_factor = -0.20
+GPA_square_factor = -0.75
 scaled_reference_coords_GPA_ref = GPA_sp.Mod_GPA_RefRectangle(
     scaled_reference_coords_GPA_ref, GPA_square_factor)
-
 
 
 # Manually mod the coordinates of the gpa reference box
@@ -391,8 +395,6 @@ scaled_reference_coords_GPA_ref = GPA_sp.Mod_GPA_RefRectangle(
 
 
 # scaled_reference_coords_GPA_ref = [B_strain_y_i, B_strain_y_f, B_strain_x_i, B_strain_x_f] 
-
-
 
 
 # Analysed image info from the label of GPA region
@@ -725,9 +727,6 @@ input_FEM_filename = FEMBuild.Extract_FEM_input_parameters(
 Base atomistic model builder
 '''
 
-z_thickness_model = 1.3 # nm
-
-
 # If wanted, build the device with the perfect unmodified crystals from database    
 # atom_models_filepath = AtomBuild.Build_DeviceSupercell_Base_Crystals(
 #     analysed_image_only, model_cells_filepath, 
@@ -778,6 +777,7 @@ path_global_strained_purged = GPA_AtoMod.Distort_AtoModel_Region(
 Post-strain chemistry/segmentation refinement
 '''
 
+
 # Here check if the EELS data is available, to then use it as the chemistry check
 # or use the segmentation instead in case it is not there
 EELS_Quant_available = EELSQuantAtoModel.Available_EELS_data_Checker(
@@ -805,7 +805,13 @@ else:
 
     # Make the difference to how the refinement is done depending on 
     # the equally oriented crystals found
-    if len(labels_equally_oriented_as_ref) > 1:
+    # make the difference from if more than 1 region is crystalline and a phase
+    if n_crysts_found == 1:
+        atomregmodel_path_final = GPA_AtoMod.Refine_StrainedRegion_SingleSegmentCrystalline(
+                atom_models_filepath, conts_vertx_per_region, crystalline_segments[0])        
+        
+    # is found and then if more than 1 are found but also are in the same axis
+    elif len(labels_equally_oriented_as_ref) > 1:
         # If many crystals are found with the same orientation, use the 
         # path_region_to_strained_purged to the global strained purged model
         atomregmodel_path_final = GPA_AtoMod.Refine_StrainedRegion_SingleAtomBlock_Segmentation(

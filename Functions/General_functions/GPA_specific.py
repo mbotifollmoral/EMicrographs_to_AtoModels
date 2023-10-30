@@ -2280,5 +2280,45 @@ def Get_GPA_Res_HeteroStruct_Separated_Spots(
             return GPA_resolution
     
     
+    
 
+def Number_Cyrstalline_Phases_Found(
+        crop_outputs_dict):
+    '''
+    Output the number of crystalline phases that have been found, or
+    in other words, the number of segmented regions which have a 
+    crystalline phase found in it
 
+    Parameters
+    ----------
+    crop_outputs_dict : dict of full info of the output of the crops
+
+    Returns
+    -------
+    n_crysts_found : int
+    crystalline_segments: list of ints, the segments in which 
+                        there is crystallinity
+    '''
+    
+    crystalline_segments = []
+    
+    n_crysts_found = 0
+    
+    for keyword in crop_outputs_dict:
+        
+        if 'list_refined_cryst_spots' in keyword:
+            
+            label_segm = keyword[:keyword.find('_list_refined_cryst_spots')]
+            label_segm = int(label_segm)
+            
+            phases_found = crop_outputs_dict[keyword]
+            
+            if len(phases_found) > 0:
+                # if we find a crystal being identified in that segmetned region
+                # we sum it to the total
+                n_crysts_found = n_crysts_found + 1
+                # append the segment to the list
+                crystalline_segments.append(label_segm)
+                
+    
+    return n_crysts_found, crystalline_segments
