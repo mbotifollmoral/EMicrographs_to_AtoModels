@@ -23,6 +23,12 @@ sys.path.append(Project_main_path)
 from EMicrographs_to_AtoModels.Functions.General_functions import ImageCalibTransf as ImCalTrans
 from EMicrographs_to_AtoModels.Functions.Peak_detector_Indep import PF_Peaks_detector as Peaks_detector
 
+# colors_list = ['red', 'green', 'blue']*100
+
+colors_list = ['red', 'green', 'blue', 'orange', 'purple', 'yellow']*100
+               # ,   
+               #   'cian', 'brown', 'grey']*100
+
 
 
 fft_info_data = dict()
@@ -44,83 +50,138 @@ fft_info_data = dict()
 # peaks2 = [[300,458]]
 
 class Collect_data():
-    def __init__(self,fft, spots_coordinates, spot_int_refs, info_obj):
+    def __init__(self, fft, spots_coordinates, spot_int_refs, info_obj):
         # info_obj = 'the object containing all the info you want to show'
         self.fft = fft
         self.coord = spots_coordinates
         self.spot_int_refs = spot_int_refs
         self.info_obj = info_obj
+        self.phases = dict()
         self.info = self.get_spots_info(info_obj)
         
-    def get_spots_info(self, info_obj):
+     
+     
+    def get_spots_info(
+            self, info_obj):
             
-            '''
-            Extract all the info for each spot in the FFT. Here we create and exemple were the info is only the coordinates
-            info_obj needs to be crop_list_refined_cryst_spots
-            so all the crystal spots found for a given crop
-            so inside there are lists of scored_spot_pairs
-            '''
+        '''
+        Extract all the info for each spot in the FFT. Here we create and exemple were the info is only the coordinates
+        info_obj needs to be crop_list_refined_cryst_spots
+        so all the crystal spots found for a given crop
+        so inside there are lists of scored_spot_pairs
+        '''
+        
+        
+        info = ['' for i in range(len(self.spot_int_refs))]
+        
+        for spot_int_ref in self.spot_int_refs:
             
-            
-            info = ['' for i in range(len(self.spot_int_refs))]
-            
-            for spot_int_ref in self.spot_int_refs:
+            info[int(spot_int_ref)] = info[int(spot_int_ref)] + 'SPOT NUMBER ' + str(int(spot_int_ref)) + '\n'
+            info[int(spot_int_ref)] = info[int(spot_int_ref)] + 'Coordinate: ' + str(self.coord[spot_int_ref])+ '\n'
+            for cryst_spot in info_obj:
+                # for every phase
                 
-                info[int(spot_int_ref)] = info[int(spot_int_ref)] + 'SPOT NUMBER ' + str(int(spot_int_ref)) + '\n'
-                info[int(spot_int_ref)] = info[int(spot_int_ref)] + 'Coordinate: ' + str(self.coord[spot_int_ref])+ '\n'
-                for cryst_spot in info_obj:
-                    # for every phase
+                cryst_spot_spots_int_ref = cryst_spot.spots
+                cryst_spot_phase_name = cryst_spot.phase_name
+                cryst_spot_ZA = cryst_spot.ZA
+                cryst_spot_ZA_priv_index = cryst_spot.ZA_priv_index
+                
+                # meaning that spot was identified in that cryst spot object
+                if spot_int_ref in cryst_spot_spots_int_ref:
                     
-                    cryst_spot_spots_int_ref = cryst_spot.spots
-                    cryst_spot_phase_name = cryst_spot.phase_name
-                    cryst_spot_ZA = cryst_spot.ZA
-                    cryst_spot_ZA_priv_index = cryst_spot.ZA_priv_index
+                    info[int(spot_int_ref)] = info[int(spot_int_ref)] + '--Crystal identified with:\n'
+                    info[int(spot_int_ref)] = info[int(spot_int_ref)] + 'Crystal phase: ' + str(cryst_spot_phase_name) + '\n'
+                    info[int(spot_int_ref)] = info[int(spot_int_ref)] + 'Zone axis: ' + str(cryst_spot_ZA) + '\n'
+                    info[int(spot_int_ref)] = info[int(spot_int_ref)] + 'Internal phase + ZA reference: ' + str(cryst_spot_ZA_priv_index) + '\n'
                     
-                    # meaning that spot was identified in that cryst spot object
-                    if spot_int_ref in cryst_spot_spots_int_ref:
+                    
+                    
+                    
+                    for spot_pair in cryst_spot.spot_pairs_obj:
                         
-                        info[int(spot_int_ref)] = info[int(spot_int_ref)] + '--Crystal identified with:\n'
-                        info[int(spot_int_ref)] = info[int(spot_int_ref)] + 'Crystal phase: ' + str(cryst_spot_phase_name) + '\n'
-                        info[int(spot_int_ref)] = info[int(spot_int_ref)] + 'Zone axis: ' + str(cryst_spot_ZA) + '\n'
-                        info[int(spot_int_ref)] = info[int(spot_int_ref)] + 'Internal phase + ZA reference: ' + str(cryst_spot_ZA_priv_index) + '\n'
-                        
-                        for spot_pair in cryst_spot.spot_pairs_obj:
+                        # internal refereces of the spots defininng that spot pair
+                        spot_pair_ints_i = [spot_pair.spot1_int_ref, spot_pair.spot2_int_ref]
+    
+                        # if that spot is present in the spot pair checked, append this information
+                        if spot_int_ref in spot_pair_ints_i:
                             
-                            # internal refereces of the spots defininng that spot pair
-                            spot_pair_ints_i = [spot_pair.spot1_int_ref, spot_pair.spot2_int_ref]
+                            index_found = spot_pair_ints_i.index(spot_int_ref)
+                            
+                            # if index_found = 0, the spot_int_ref is spot1
+                            # if index_found = 1, the spot_int_ref is spot2
+                            
+                            if index_found == 0:
+                                other_index = 1
+                            else:
+                                other_index = 0
+                                # and of course other_index = 1
+                            
+                            hkl_refs = [spot_pair.hkl1_reference, spot_pair.hkl2_reference]
+                            dists_refs = [spot_pair.spot1_dist , spot_pair.spot2_dist]
+                            angle_between_spots = spot_pair.angle_between
+                            
+                            info[int(spot_int_ref)] = info[int(spot_int_ref)] + 'Forming spot pair with spot number:' + str(spot_pair_ints_i[other_index]) +'\n'
+                            info[int(spot_int_ref)] = info[int(spot_int_ref)] + 'where spot '+str(int(spot_int_ref))+ ' is identified as: ' + str(hkl_refs[index_found]) +'\n'
+                            info[int(spot_int_ref)] = info[int(spot_int_ref)] + 'and spot '+ str(spot_pair_ints_i[other_index]) + ' is identified as: ' + str(hkl_refs[other_index]) +'\n'
+                            
+                            info[int(spot_int_ref)] = info[int(spot_int_ref)] + 'Spot '+str(int(spot_int_ref))+ ' has a distance of: ' + str(dists_refs[index_found]) +' Angs\n'
+                            info[int(spot_int_ref)] = info[int(spot_int_ref)] + 'and spot '+str(spot_pair_ints_i[other_index])+ ' has a distance of: ' + str(dists_refs[other_index]) +' Angs\n'
+                            info[int(spot_int_ref)] = info[int(spot_int_ref)] + 'forming an angle of :' + str(angle_between_spots) +' degrees\n'
+                            # info[int(spot_int_ref)] = info[int(spot_int_ref)] + '(debug) ZA found :' + str(spot_pair.ZA) +'\n'
+                            # info[int(spot_int_ref)] = info[int(spot_int_ref)] + '(debug) phase found :' + str(spot_pair.phase_name) +'\n'
+                
+              
+                
+        phases_dict = self.phases
+                
+        for cryst_spot in info_obj:
+            # for every phase
+            
+            cryst_spot_spots_int_ref = cryst_spot.spots
+            cryst_spot_phase_name = cryst_spot.phase_name
+            cryst_spot_ZA = cryst_spot.ZA
+            cryst_spot_ZA_priv_index = cryst_spot.ZA_priv_index                    
         
-                            # if that spot is present in the spot pair checked, append this information
-                            if spot_int_ref in spot_pair_ints_i:
-                                
-                                index_found = spot_pair_ints_i.index(spot_int_ref)
-                                
-                                # if index_found = 0, the spot_int_ref is spot1
-                                # if index_found = 1, the spot_int_ref is spot2
-                                
-                                if index_found == 0:
-                                    other_index = 1
-                                else:
-                                    other_index = 0
-                                    # and of course other_index = 1
-                                
-                                hkl_refs = [spot_pair.hkl1_reference, spot_pair.hkl2_reference]
-                                dists_refs = [spot_pair.spot1_dist , spot_pair.spot2_dist]
-                                angle_between_spots = spot_pair.angle_between
-                                
-                                info[int(spot_int_ref)] = info[int(spot_int_ref)] + 'Forming spot pair with spot number:' + str(spot_pair_ints_i[other_index]) +'\n'
-                                info[int(spot_int_ref)] = info[int(spot_int_ref)] + 'where spot '+str(int(spot_int_ref))+ ' is identified as: ' + str(hkl_refs[index_found]) +'\n'
-                                info[int(spot_int_ref)] = info[int(spot_int_ref)] + 'and spot '+ str(spot_pair_ints_i[other_index]) + ' is identified as: ' + str(hkl_refs[other_index]) +'\n'
-                                
-                                info[int(spot_int_ref)] = info[int(spot_int_ref)] + 'Spot '+str(int(spot_int_ref))+ ' has a distance of: ' + str(dists_refs[index_found]) +' Angs\n'
-                                info[int(spot_int_ref)] = info[int(spot_int_ref)] + 'and spot '+str(spot_pair_ints_i[other_index])+ ' has a distance of: ' + str(dists_refs[other_index]) +' Angs\n'
-                                info[int(spot_int_ref)] = info[int(spot_int_ref)] + 'forming an angle of :' + str(angle_between_spots) +' degrees\n'
-                                # info[int(spot_int_ref)] = info[int(spot_int_ref)] + '(debug) ZA found :' + str(spot_pair.ZA) +'\n'
-                                # info[int(spot_int_ref)] = info[int(spot_int_ref)] + '(debug) phase found :' + str(spot_pair.phase_name) +'\n'
+            # list of coordinates that are in that given phase
+            list_coordinates_phase_i = self.coord[cryst_spot_spots_int_ref]
+        
+            # list with the planes being strings to display
+            planes_found_phase_i = []
+            
+            for spot_int_ref in cryst_spot_spots_int_ref:
+                
+                # for all the spots pair objects in the crystal structure
+                for spot_pair in cryst_spot.spot_pairs_obj:
+
+
+                    # internal refereces of the spots defininng that spot pair
+                    spot_pair_ints_i = [spot_pair.spot1_int_ref, spot_pair.spot2_int_ref]
+    
+                    # if that spot is present in the spot pair checked, append this information
+                    if spot_int_ref in spot_pair_ints_i:
+                        
+                        index_found = spot_pair_ints_i.index(spot_int_ref)
+                        
+                        hkl_refs = [spot_pair.hkl1_reference, spot_pair.hkl2_reference]        
+        
+                        plane_spot_hkl_fam = '{' + str(hkl_refs[index_found])[1:-1] + '}'
                     
-            
-            
-            return info    
+                        planes_found_phase_i.append(plane_spot_hkl_fam)
+                    
+                        break                        
+                        
         
+            phases_dict[str(cryst_spot_phase_name) + '_' + str(cryst_spot_ZA) + '_' + str(cryst_spot_ZA_priv_index)] = [list_coordinates_phase_i, planes_found_phase_i]
+
+
+        # for el in phases_dict:
+        #     print(el)
+        #     print(phases_dict[el])
+        
+
+
+        return info    
+    
         
     # def get_spots_info_ORIGINAL(self, info_obj):
         
@@ -230,14 +291,15 @@ def CreateToolTip(widget, text,coord, item):
     
 class Interactive_spot():
     
-    def __init__(self, coord, info = None):
+    def __init__(self, coord, info = None, color = 'red'):
         self.x  = coord[0]
         self.y  = coord[1]
         self.info = info
+        self.color = color
 
     def draw_peak(self, canvas, st, size = 3):
         peak = canvas.create_oval(self.x-size, self.y-size,self.x+size, self.y+size,
-                                  fill='red', outline = 'red', tags = 'peak')
+                                  fill= self.color, outline = self.color, tags = 'peak')
         canvas.tag_bind(peak,'<1>', lambda _: get_info(st,self.info + ' \n')) 
         CreateToolTip(canvas,self.info,(self.x,self.y),peak)
         
@@ -252,19 +314,84 @@ def coordinates_change(coord,old_size, new_size):
     return x, y
     
 
+# def draw_fft(e):
+#     global fft_picture
+#     fft_name = fft_combobox.get()
+#     canvas.delete('all')
+    
+#     fft_picture = matrix_to_picture(root, fft_info_data[fft_name].fft, (fft_size, fft_size))
+#     fft_canvas = canvas.create_image(0,0,image=fft_picture, tags = 'fft', anchor = 'nw')
+    
+#     for i in range(len(fft_info_data[fft_name].coord)):
+#         img_coord = coordinates_change(fft_info_data[fft_name].coord[i] ,len(fft_info_data[fft_name].fft) , fft_size)
+#         point = Interactive_spot(img_coord, fft_info_data[fft_name].info[i])
+#         point.draw_peak(canvas, st, size = 5)
+    
+
+
 def draw_fft(e):
     global fft_picture
+    global sl
     fft_name = fft_combobox.get()
+    sl.list_var.set(list(fft_info_data[fft_name].phases.keys()))
+    for i in range(np.min((len(colors_list), len(fft_info_data[fft_name].phases)))):
+        sl.listbox.itemconfig(i, {'selectbackground': colors_list[i]})
     canvas.delete('all')
     
     fft_picture = matrix_to_picture(root, fft_info_data[fft_name].fft, (fft_size, fft_size))
     fft_canvas = canvas.create_image(0,0,image=fft_picture, tags = 'fft', anchor = 'nw')
+
+    # try:
+    j = 0
+    for phase in sl.selected_items:
+        for i in range(len(fft_info_data[fft_name].phases[phase][0])):
+            img_coord = coordinates_change(fft_info_data[fft_name].phases[phase][0][i], len(fft_info_data[fft_name].fft) , fft_size)            
+            # img_coord = (int(img_coord[0]), int(img_coord[1]))
+            
+            point = Interactive_spot(img_coord, fft_info_data[fft_name].info[i], color = colors_list[sl.listbox.curselection()[j]])
+            point.draw_peak(canvas, st, size = 5)
+
+            label = tk.Label(canvas, text=fft_info_data[fft_name].phases[phase][1][i], fg='white', bg = 'black')
+            canvas.create_window(img_coord[0] - 20, img_coord[1] - 30,anchor=tk.NW, window=label)
+
+        j += 1
+    # except: pass
+
     
-    for i in range(len(fft_info_data[fft_name].coord)):
-        img_coord = coordinates_change(fft_info_data[fft_name].coord[i] ,len(fft_info_data[fft_name].fft) , fft_size)
-        point = Interactive_spot(img_coord, fft_info_data[fft_name].info[i])
-        point.draw_peak(canvas, st, size = 5)
-    
+    # for i in range(len(fft_info_data[fft_name].coord)):
+    #     img_coord = coordinates_change(fft_info_data[fft_name].coord[i] ,len(fft_info_data[fft_name].fft) , fft_size)
+    #     point = Interactive_spot(img_coord, fft_info_data[fft_name].info[i])
+    #     point.draw_peak(canvas, st, size = 5)
+
+
+class Scrollable_list(tk.Frame):
+    def __init__(self,root, _list,  title = '', height_list = 5,  *args, **kwaegs):
+        super().__init__(root, *args, **kwaegs)
+        self.root = root
+        self.list_var = tk.Variable(self, _list)
+        self.selected_items = []
+
+        if title != '':
+            self.label_title = tk.Label(self, text = title, font=('American typewriter', 14))
+            self.label_title.pack(padx = 10, pady = 10)
+
+        self.listbox = tk.Listbox(self, listvariable=self.list_var, height=height_list, selectmode='multiple', 
+                                  selectbackground='green', exportselection=False, font=('American typewriter', 14))
+        self.listbox.pack(expand=True, fill='both', side='left')
+        self.scrollbar = ttk.Scrollbar(self,orient=tk.VERTICAL,command=self.listbox.yview)
+        self.scrollbar.pack(fill='y', side='left')
+        self.listbox['yscrollcommand'] = self.scrollbar.set
+        
+        # for i in range(len(colors_list)):
+        #     self.listbox.itemconfig(i, {'selectbackground': colors_list[i]})
+
+        self.listbox.bind("<<ListboxSelect>>", self.command)
+
+    def command(self, e):
+        self.selected_items = [self.listbox.get(idx) for idx in self.listbox.curselection()]
+        draw_fft(e)
+
+
     
 '''    
 Bragg filtering functions 
@@ -612,6 +739,10 @@ def main():
     canvas.pack(side = 'left')
     
     #Frame settings
+    global sl
+    sl = Scrollable_list(root, [], title='Phases list')
+    sl.pack(fill = 'both', anchor = 'n', side ='top')
+    
     global st
     st = ScrolledText(root, height = 30, width = 40)
     st.pack(fill = 'both', anchor = 'n', expand = True, side ='top')
