@@ -6813,7 +6813,7 @@ def Build_DeviceSupercell_Virtual_To_Distort(
     
     # Folder to contain the models created, inside this model_cells, based
     # on the name of the image
-    atom_models_filepath = model_cells_filepath + analysed_image.image_in_dataset.name + '_strained' + '\\'
+    atom_models_filepath = model_cells_filepath + analysed_image.image_in_dataset.name + '_strained_' + str(label_of_GPA_ref) + '\\'
     path_atom_models = os.path.isdir(atom_models_filepath)
     if path_atom_models == False:
         os.mkdir(atom_models_filepath)
